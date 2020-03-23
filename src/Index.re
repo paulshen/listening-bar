@@ -1,5 +1,3 @@
-Js.log("kombucha");
-
 open Webapi.Dom;
 open Belt.Option;
 

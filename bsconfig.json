@@ -3,10 +3,16 @@
   "reason": {
     "react-jsx": 3
   },
-  "sources": {
-    "dir" : "client",
-    "subdirs" : true
-  },
+  "sources": [
+    {
+      "dir" : "client",
+      "subdirs" : true
+    },
+    {
+      "dir" : "isomorphic",
+      "subdirs" : true
+    }
+  ],
   "bsc-flags": ["-bs-super-errors", "-bs-no-version-header"],
   "package-specs": [{
     "module": "commonjs",
@@ -20,7 +26,8 @@
     "bs-fetch",
     "reason-promise",
     "restorative",
-    "@glennsl/bs-json"
+    "@glennsl/bs-json",
+    "bs-socket"
   ],
   "refmt": 3,
   "ppx-flags": [

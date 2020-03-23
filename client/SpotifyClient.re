@@ -1,6 +1,6 @@
 open Belt;
 
-let getCurrentTrack = () => {
+let rec getCurrentTrack = () => {
   switch (Belt.Option.map(UserStore.getUser(), user => user.accessToken)) {
   | Some(accessToken) =>
     let%Repromise.Js response =
@@ -17,6 +17,9 @@ let getCurrentTrack = () => {
       );
     let response = Result.getExn(response);
     switch (Fetch.Response.status(response)) {
+    | 401 =>
+      let%Repromise _ = API.fetchUser();
+      getCurrentTrack();
     | 204 => Promise.resolved(None)
     | 200 =>
       let%Repromise.Js json = Fetch.Response.json(response);

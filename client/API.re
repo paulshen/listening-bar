@@ -36,7 +36,7 @@ let login = code => {
   Promise.resolved(accessToken);
 };
 
-let getUser = () => {
+let fetchUser = () => {
   switch (UserStore.getSessionId()) {
   | Some(sessionId) =>
     let%Repromise.Js response =

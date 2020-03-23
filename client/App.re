@@ -4,7 +4,7 @@ let make = () => {
   React.useEffect1(
     () => {
       switch (url.path) {
-      | ["room", _] => API.getUser() |> ignore
+      | ["room", _] => API.fetchUser() |> ignore
       | ["oauth", "callback"] =>
         let code =
           url.search

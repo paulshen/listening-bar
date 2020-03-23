@@ -8,7 +8,8 @@ Socket.on(
     Js.log(message);
     switch (message) {
     | NewUser(roomId, userId) => RoomStore.addUser(roomId, userId)
-    | Connected(room) => RoomStore.updateRoom(room)
+    | Connected(roomId, userIds) =>
+      RoomStore.updateRoom({id: roomId, userIds})
     };
   },
 );

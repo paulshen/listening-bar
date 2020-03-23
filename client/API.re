@@ -51,9 +51,10 @@ let getUser = () => {
       );
     let%Repromise.Js json = Fetch.Response.json(Result.getExn(response));
     let json = Result.getExn(json);
-    let user: UserStore.user =
-      Json.Decode.{id: json |> field("userId", string)};
-    UserStore.setUser(user);
+    open Json.Decode;
+    let userId = json |> field("userId", string);
+    let accessToken = json |> field("accessToken", string);
+    UserStore.updateUser({id: userId, accessToken});
     Promise.resolved();
   | None => Promise.resolved()
   };

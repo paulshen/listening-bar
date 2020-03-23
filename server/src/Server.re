@@ -67,10 +67,24 @@ App.getWithMany(app, ~path="/user") @@
     }
   }),
   promiseMiddleware((next, req, res) => {
-    let userId: option(string) =
+    let userId =
       Option.map(getProperty(req, "session"), json =>
         Obj.magic(json)##userId
       );
+    let user = userId->Option.flatMap(userId => Persist.getUser(userId));
+    let%Repromise accessToken =
+      switch ((user: option(User.t))) {
+      | Some(user) =>
+        if (user.tokenExpireTime < Js.Date.now()) {
+          let%Repromise (accessToken, tokenExpireTime) =
+            Spotify.refreshToken(user.refreshToken);
+          Persist.updateUser({...user, accessToken, tokenExpireTime});
+          Promise.resolved(Some(accessToken));
+        } else {
+          Promise.resolved(Some(user.accessToken));
+        }
+      | None => Promise.resolved(None)
+      };
     let responseJson =
       Js.Json.object_(
         Js.Dict.fromArray([|
@@ -78,6 +92,13 @@ App.getWithMany(app, ~path="/user") @@
             "userId",
             switch (userId) {
             | Some(userId) => Js.Json.string(userId)
+            | None => Js.Json.null
+            },
+          ),
+          (
+            "accessToken",
+            switch (accessToken) {
+            | Some(accessToken) => Js.Json.string(accessToken)
             | None => Js.Json.null
             },
           ),
@@ -166,14 +187,13 @@ SocketServer.onConnect(
           };
         rooms->Js.Dict.set(roomId, updatedRoom);
         socket->Socket.emit(
-          Connected({
-            id: roomId,
-            userIds:
-              updatedRoom.connections
-              |> Js.Array.map((connection: Room.connection) =>
-                   connection.userId
-                 ),
-          }),
+          Connected(
+            roomId,
+            updatedRoom.connections
+            |> Js.Array.map((connection: Room.connection) =>
+                 connection.userId
+               ),
+          ),
         );
       }
     });

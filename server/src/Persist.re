@@ -24,13 +24,17 @@ let db = LowDb.makeDb(adapter);
 LowDb.defaults(db, {"users": Js.Dict.empty(), "sessions": Js.Dict.empty()})
 ->LowDb.write;
 
-let addUser = (user: User.t) => {
+let updateUser = (user: User.t) => {
   LowDb.(
     db
     ->get("users")
     ->set(
         user.id,
-        {"accessToken": user.accessToken, "refreshToken": user.refreshToken},
+        {
+          "accessToken": user.accessToken,
+          "refreshToken": user.refreshToken,
+          "tokenExpireTime": user.tokenExpireTime,
+        },
       )
     ->write
   );
@@ -42,6 +46,10 @@ let addSession = (session: User.session) => {
   );
 };
 
-let getSession = (sessionId: string) => {
+let getSession = (sessionId: string): option(User.session) => {
   LowDb.(db->get("sessions")->get(sessionId)->value);
+};
+
+let getUser = (userId: string): option(User.t) => {
+  LowDb.(db->get("users")->get(userId)->value);
 };

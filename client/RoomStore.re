@@ -1,4 +1,7 @@
-type room = SocketMessage.clientRoom;
+type room = {
+  id: string,
+  userIds: array(string),
+};
 
 type state = Js.Dict.t(room);
 type action =

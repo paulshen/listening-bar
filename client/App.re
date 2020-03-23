@@ -4,7 +4,7 @@ let make = () => {
   React.useEffect1(
     () => {
       switch (url.path) {
-      | [] => API.getUser() |> ignore
+      | ["room", _] => API.getUser() |> ignore
       | ["oauth", "callback"] =>
         let code =
           url.search
@@ -27,7 +27,7 @@ let make = () => {
   );
   switch (url.path) {
   | ["login"] => <div> <Login /> </div>
-  | [] => <Room />
+  | ["room", roomId] => <Room roomId />
   | _ => React.null
   };
 };

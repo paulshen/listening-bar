@@ -13,19 +13,19 @@ module LoggedInRoom = {
       None;
     });
 
-    React.useEffect0(() => {
-      {
-        let%Repromise result = SpotifyClient.getCurrentTrack();
-        switch (result) {
-        | Some((track, isPlaying)) =>
-          SpotifyStore.updateState(Some(track), isPlaying)
-        | None => SpotifyStore.updateState(None, false)
-        };
-        Promise.resolved();
-      }
-      |> ignore;
-      None;
-    });
+    // React.useEffect0(() => {
+    //   {
+    //     let%Repromise result = SpotifyClient.getCurrentTrack();
+    //     switch (result) {
+    //     | Some((track, isPlaying)) =>
+    //       SpotifyStore.updateState(Some(track), isPlaying)
+    //     | None => SpotifyStore.updateState(None, false)
+    //     };
+    //     Promise.resolved();
+    //   }
+    //   |> ignore;
+    //   None;
+    // });
 
     <div>
       <div> {React.string(roomId)} </div>

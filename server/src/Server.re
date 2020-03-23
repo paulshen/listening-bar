@@ -16,6 +16,15 @@ let promiseMiddleware = middleware => {
     Promise.Js.toBsPromise(middleware(next, req, res))
   );
 };
+let setProperty = (req, property, value, res) => {
+  let reqData = Request.asJsonObject(req);
+  Js.Dict.set(reqData, property, value);
+  res;
+};
+let getProperty = (req, property) => {
+  let reqData = Request.asJsonObject(req);
+  Js.Dict.get(reqData, property);
+};
 
 App.get(app, ~path="/hello") @@
 promiseMiddleware((next, req, res) =>
@@ -42,6 +51,39 @@ promiseMiddleware((next, req, res) => {
     );
   res |> Response.sendJson(responseJson) |> Promise.resolved;
 });
+
+App.getWithMany(app, ~path="/user") @@
+[|
+  Middleware.from((next, req, res) => {
+    switch (
+      Request.get("Authorization", req)->Option.flatMap(Persist.getSession)
+    ) {
+    | Some(session) =>
+      setProperty(req, "session", Obj.magic(session), res) |> ignore;
+      next(Next.middleware, res);
+    | None => Response.sendStatus(Response.StatusCode.Unauthorized, res)
+    }
+  }),
+  promiseMiddleware((next, req, res) => {
+    let userId: option(string) =
+      Option.map(getProperty(req, "session"), json =>
+        Obj.magic(json)##userId
+      );
+    let responseJson =
+      Js.Json.object_(
+        Js.Dict.fromArray([|
+          (
+            "userId",
+            switch (userId) {
+            | Some(userId) => Js.Json.string(userId)
+            | None => Js.Json.null
+            },
+          ),
+        |]),
+      );
+    res |> Response.sendJson(responseJson) |> Promise.resolved;
+  }),
+|];
 
 let onListen = e =>
   switch (e) {

@@ -17,13 +17,15 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@glennsl/bs-json": "^5.0.2",
     "bs-fetch": "^0.5.2",
     "bs-let": "0.1.11",
     "bs-webapi": "^0.15.9",
     "react": "^16.8.1",
     "react-dom": "^16.8.1",
     "reason-promise": "^1.0.2",
-    "reason-react": ">=0.7.0"
+    "reason-react": ">=0.7.0",
+    "restorative": "^0.3.2"
   },
   "devDependencies": {
     "bs-platform": "^7.2.2",

@@ -35,3 +35,26 @@ let login = code => {
   Dom.Storage.(localStorage |> setItem("accessToken", accessToken));
   Promise.resolved(accessToken);
 };
+
+let getUser = () => {
+  switch (UserStore.getSessionId()) {
+  | Some(sessionId) =>
+    let%Repromise.Js response =
+      Fetch.fetchWithInit(
+        "http://localhost:3000/user",
+        Fetch.RequestInit.make(
+          ~method_=Get,
+          ~headers=Fetch.HeadersInit.make({"Authorization": sessionId}),
+          ~mode=CORS,
+          (),
+        ),
+      );
+    let%Repromise.Js json = Fetch.Response.json(Result.getExn(response));
+    let json = Result.getExn(json);
+    let user: UserStore.user =
+      Json.Decode.{id: json |> field("userId", string)};
+    UserStore.setUser(user);
+    Promise.resolved();
+  | None => Promise.resolved()
+  };
+};

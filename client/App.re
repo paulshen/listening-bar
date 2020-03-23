@@ -4,6 +4,7 @@ let make = () => {
   React.useEffect1(
     () => {
       switch (url.path) {
+      | [] => API.getUser() |> ignore
       | ["oauth", "callback"] =>
         let code =
           url.search
@@ -12,7 +13,6 @@ let make = () => {
           |> Js.Array.find(component => component[0] == "code")
           |> Belt.Option.getExn
           |> (x => x[1]);
-        Js.log(code);
         {
           let%Repromise accessToken = API.login(code);
           Promise.resolved();
@@ -27,6 +27,7 @@ let make = () => {
   );
   switch (url.path) {
   | ["login"] => <div> <Login /> </div>
+  | [] => <Room />
   | _ => React.null
   };
 };

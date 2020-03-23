@@ -15,7 +15,7 @@ module LowDb = {
   [@bs.send] external set: (t, string, 'data) => mutation = "set";
   [@bs.send] external write: mutation => unit = "write";
 
-  [@bs.send] external value: t => 'data = "value";
+  [@bs.send] external value: t => option('data) = "value";
 };
 
 let adapter = LowDb.makeAdapter("db.json");
@@ -40,4 +40,8 @@ let addSession = (session: User.session) => {
   LowDb.(
     db->get("sessions")->set(session.id, {"userId": session.userId})->write
   );
+};
+
+let getSession = (sessionId: string) => {
+  LowDb.(db->get("sessions")->get(sessionId)->value);
 };

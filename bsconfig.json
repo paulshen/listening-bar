@@ -18,7 +18,9 @@
     "reason-react",
     "bs-webapi",
     "bs-fetch",
-    "reason-promise"
+    "reason-promise",
+    "restorative",
+    "@glennsl/bs-json"
   ],
   "refmt": 3,
   "ppx-flags": [

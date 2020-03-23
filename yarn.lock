@@ -2,6 +2,11 @@
 # yarn lockfile v1
 
 
+"@glennsl/bs-json@^5.0.2":
+  version "5.0.2"
+  resolved "https://registry.yarnpkg.com/@glennsl/bs-json/-/bs-json-5.0.2.tgz#cfb85d94d370ec6dc17849e0ddb1a51eee08cfcc"
+  integrity sha512-vVlHJNrhmwvhyea14YiV4L5pDLjqw1edE3GzvMxlbPPQZVhzgO3sTWrUxCpQd2gV+CkMfk4FHBYunx9nWtBoDg==
+
 bs-fetch@^0.5.2:
   version "0.5.2"
   resolved "https://registry.yarnpkg.com/bs-fetch/-/bs-fetch-0.5.2.tgz#a9f4582ddb1414d3467b900305c738813481988c"
@@ -182,6 +187,11 @@ reason-react@>=0.7.0:
   dependencies:
     react ">=16.8.1"
     react-dom ">=16.8.1"
+
+restorative@^0.3.2:
+  version "0.3.2"
+  resolved "https://registry.yarnpkg.com/restorative/-/restorative-0.3.2.tgz#5331a07bc77ec2fa0337ca18a57fdb1fc54b8860"
+  integrity sha512-kT6745RXgjfXMBU1R/ZyZvZ5IS9REWbcUp5/zQVgdqiqQAyyWoRyIovQXpd/X9eLONhiiVdvy7rast/IUZN7BA==
 
 scheduler@^0.19.1:
   version "0.19.1"

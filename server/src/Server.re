@@ -78,7 +78,12 @@ App.getWithMany(app, ~path="/user") @@
         if (user.tokenExpireTime < Js.Date.now()) {
           let%Repromise (accessToken, tokenExpireTime) =
             Spotify.refreshToken(user.refreshToken);
-          Persist.updateUser({...user, accessToken, tokenExpireTime});
+          Persist.updateUser({
+            ...user,
+            id: Option.getExn(userId),
+            accessToken,
+            tokenExpireTime,
+          });
           Promise.resolved(Some(accessToken));
         } else {
           Promise.resolved(Some(user.accessToken));
@@ -148,54 +153,76 @@ SocketServer.onConnect(
   io,
   socket => {
     open SocketServer;
-    Js.log("Got a connection!");
-    Js.log(socket);
+    Js.log2("Connection!", socket);
     let socketId = Socket.getId(socket);
-    Socket.on(socket, message => {
-      switch (message) {
-      | JoinRoom(roomId, sessionId) =>
-        Js.log2("JoinRoom", (roomId, sessionId));
-        let session: User.session =
-          Persist.getSession(sessionId)->Option.getExn;
-        socket->Socket.join(roomId) |> ignore;
-        socket
-        ->Socket.to_(roomId)
-        ->Socket.emit(NewUser(roomId, session.userId));
-        let room =
-          Option.getWithDefault(
-            rooms->Js.Dict.get(roomId),
-            {id: roomId, connections: [||]},
-          );
-        let updatedRoom =
-          if (room.connections
-              |> Js.Array.findIndex((connection: Room.connection) =>
-                   connection.id == socketId
-                 )
-              == (-1)) {
-            {
-              ...room,
-              connections:
-                room.connections
-                |> Js.Array.concat([|
-                     (
-                       {id: socketId, userId: session.userId}: Room.connection
-                     ),
-                   |]),
+    let roomIdRef = ref(None);
+    Socket.on(
+      socket,
+      message => {
+        Js.log(message);
+        switch (message) {
+        | JoinRoom(roomId, sessionId) =>
+          let session: User.session =
+            Persist.getSession(sessionId)->Option.getExn;
+          socket->Socket.join(roomId) |> ignore;
+          socket
+          ->Socket.to_(roomId)
+          ->Socket.emit(NewUser(roomId, session.userId));
+          let room =
+            Option.getWithDefault(
+              rooms->Js.Dict.get(roomId),
+              {id: roomId, connections: [||], trackState: None},
+            );
+          let updatedRoom =
+            if (room.connections
+                |> Js.Array.findIndex((connection: Room.connection) =>
+                     connection.id == socketId
+                   )
+                == (-1)) {
+              {
+                ...room,
+                connections:
+                  room.connections
+                  |> Js.Array.concat([|
+                       (
+                         {id: socketId, userId: session.userId}: Room.connection
+                       ),
+                     |]),
+              };
+            } else {
+              room;
             };
-          } else {
-            room;
-          };
-        rooms->Js.Dict.set(roomId, updatedRoom);
-        socket->Socket.emit(
-          Connected(
-            roomId,
-            updatedRoom.connections
-            |> Js.Array.map((connection: Room.connection) =>
-                 connection.userId
-               ),
-          ),
-        );
-      }
-    });
+          rooms->Js.Dict.set(roomId, updatedRoom);
+          socket->Socket.emit(
+            Connected(
+              roomId,
+              updatedRoom.connections
+              |> Js.Array.map((connection: Room.connection) =>
+                   connection.userId
+                 ),
+              SocketMessage.serializeOptionTrackState(updatedRoom.trackState),
+            ),
+          );
+          roomIdRef := Some(roomId);
+        | PublishTrackState(roomId, trackState) =>
+          switch (roomIdRef^) {
+          | Some(storedRoomId) =>
+            // TODO: check roomId == storedRoomId
+            switch (Js.Dict.get(rooms, roomId)) {
+            | Some(room) =>
+              let updatedRoom = {...room, trackState: Some(trackState)};
+              rooms->Js.Dict.set(roomId, updatedRoom);
+              Persist.updateRoom(updatedRoom);
+            | None => ()
+            };
+
+            socket
+            ->Socket.to_(roomId)
+            ->Socket.emit(PublishTrackState(roomId, trackState));
+          | None => ()
+          }
+        };
+      },
+    );
   },
 );

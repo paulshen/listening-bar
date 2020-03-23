@@ -21,7 +21,14 @@ module LowDb = {
 let adapter = LowDb.makeAdapter("db.json");
 let db = LowDb.makeDb(adapter);
 
-LowDb.defaults(db, {"users": Js.Dict.empty(), "sessions": Js.Dict.empty()})
+LowDb.defaults(
+  db,
+  {
+    "users": Js.Dict.empty(),
+    "sessions": Js.Dict.empty(),
+    "rooms": Js.Dict.empty(),
+  },
+)
 ->LowDb.write;
 
 let updateUser = (user: User.t) => {
@@ -52,4 +59,14 @@ let getSession = (sessionId: string): option(User.session) => {
 
 let getUser = (userId: string): option(User.t) => {
   LowDb.(db->get("users")->get(userId)->value);
+};
+
+let updateRoom = (room: Room.t) => {
+  LowDb.(
+    db->get("rooms")->set(room.id, {"trackState": room.trackState})->write
+  );
+};
+
+let getRoom = (roomId: string): option(Room.t) => {
+  LowDb.(db->get("rooms")->get(roomId)->value);
 };

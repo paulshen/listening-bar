@@ -6,4 +6,5 @@ type connection = {
 type t = {
   id: string,
   connections: array(connection),
+  trackState: option(SocketMessage.trackState),
 };

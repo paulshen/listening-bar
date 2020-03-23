@@ -16,25 +16,30 @@ type track = {
   id: string,
   name: string,
   uri: string,
+  durationMs: float,
   album,
   artists: array(artist),
 };
 
+type playerState =
+  | NotPlaying
+  | Playing(float);
+
 type state = {
   currentTrack: option(track),
-  isPlaying: bool,
+  playerState,
 };
 type action =
-  | UpdateState(option(track), bool);
+  | UpdateState(option(track), playerState);
 
 let api =
   Restorative.createStore(
-    {currentTrack: None, isPlaying: false}, (state, action) => {
+    {currentTrack: None, playerState: NotPlaying}, (state, action) => {
     switch (action) {
-    | UpdateState(track, isPlaying) => {currentTrack: track, isPlaying}
+    | UpdateState(track, playerState) => {currentTrack: track, playerState}
     }
   });
 
 let useState = api.useStore;
-let updateState = (track, isPlaying) =>
-  api.dispatch(UpdateState(track, isPlaying));
+let updateState = (track, playerState) =>
+  api.dispatch(UpdateState(track, playerState));

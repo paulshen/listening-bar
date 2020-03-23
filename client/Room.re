@@ -1,8 +1,28 @@
 module LoggedInRoom = {
+  let publishCurrentTrack = () => {
+    let%Repromise result = SpotifyClient.getCurrentTrack();
+    switch (result) {
+    | Some((track, isPlaying, startTimestamp)) =>
+      SpotifyStore.updateState(
+        Some(track),
+        isPlaying ? Playing(startTimestamp) : NotPlaying,
+      );
+      if (isPlaying) {
+        ClientSocket.publishCurrentTrack(
+          track.id,
+          startTimestamp,
+          track.durationMs,
+        );
+      };
+    | None => ()
+    };
+    Promise.resolved();
+  };
+
   [@react.component]
   let make = (~roomId: string, ~user: UserStore.user) => {
     let room = RoomStore.useRoom(roomId);
-    let {currentTrack, isPlaying}: SpotifyStore.state =
+    let {currentTrack, playerState}: SpotifyStore.state =
       SpotifyStore.useState();
 
     React.useEffect0(() => {
@@ -13,23 +33,12 @@ module LoggedInRoom = {
       None;
     });
 
-    // React.useEffect0(() => {
-    //   {
-    //     let%Repromise result = SpotifyClient.getCurrentTrack();
-    //     switch (result) {
-    //     | Some((track, isPlaying)) =>
-    //       SpotifyStore.updateState(Some(track), isPlaying)
-    //     | None => SpotifyStore.updateState(None, false)
-    //     };
-    //     Promise.resolved();
-    //   }
-    //   |> ignore;
-    //   None;
-    // });
-
     <div>
       <div> {React.string(roomId)} </div>
       <div> {React.string(user.id)} </div>
+      <button onClick={_ => publishCurrentTrack() |> ignore}>
+        {React.string("Publish Current Track")}
+      </button>
       {switch (currentTrack) {
        | Some(currentTrack) =>
          <div>

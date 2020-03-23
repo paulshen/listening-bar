@@ -32,6 +32,7 @@ let rec getCurrentTrack = () => {
         Json.Decode.{
           id: item |> field("id", string),
           name: item |> field("name", string),
+          durationMs: item |> field("duration_ms", Json.Decode.float),
           uri: item |> field("uri", string),
           album:
             item
@@ -73,7 +74,11 @@ let rec getCurrentTrack = () => {
         };
       let isPlaying =
         Result.getExn(json) |> Json.Decode.(field("is_playing", bool));
-      Promise.resolved(Some((track, isPlaying)));
+      let progressMs =
+        Result.getExn(json)
+        |> Json.Decode.(field("progress_ms", Json.Decode.float));
+      let startTimestamp = Js.Date.now() -. progressMs;
+      Promise.resolved(Some((track, isPlaying, startTimestamp)));
     | _ =>
       Js.log(response);
       Promise.resolved(None);

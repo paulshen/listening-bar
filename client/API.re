@@ -20,14 +20,18 @@ let login = code => {
       ),
     );
   let%Repromise.Js json = Fetch.Response.json(Result.getExn(response));
+  let jsonDict = json->Result.getExn->Js.Json.decodeObject->Option.getExn;
   let sessionId =
-    json
-    ->Result.getExn
-    ->Js.Json.decodeObject
-    ->Option.getExn
+    jsonDict
     ->Js.Dict.unsafeGet("sessionId")
     ->Js.Json.decodeString
     ->Option.getExn;
   Dom.Storage.(localStorage |> setItem("sessionId", sessionId));
-  Promise.resolved();
+  let accessToken =
+    jsonDict
+    ->Js.Dict.unsafeGet("accessToken")
+    ->Js.Json.decodeString
+    ->Option.getExn;
+  Dom.Storage.(localStorage |> setItem("accessToken", accessToken));
+  Promise.resolved(accessToken);
 };

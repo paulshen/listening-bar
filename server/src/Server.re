@@ -32,10 +32,13 @@ promiseMiddleware((next, req, res) => {
     ->Js.Dict.unsafeGet("code")
     ->Js.Json.decodeString
     ->Option.getExn;
-  let%Repromise sessionId = Spotify.getToken(code);
+  let%Repromise (sessionId, accessToken) = Spotify.getToken(code);
   let responseJson =
     Js.Json.object_(
-      Js.Dict.fromArray([|("sessionId", Js.Json.string(sessionId))|]),
+      Js.Dict.fromArray([|
+        ("sessionId", Js.Json.string(sessionId)),
+        ("accessToken", Js.Json.string(accessToken)),
+      |]),
     );
   res |> Response.sendJson(responseJson) |> Promise.resolved;
 });

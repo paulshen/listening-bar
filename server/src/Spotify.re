@@ -83,5 +83,5 @@ let getToken = code => {
   let sessionId = uuidV4();
   Persist.addSession({id: sessionId, userId});
 
-  Promise.resolved(sessionId);
+  Promise.resolved((sessionId, accessToken));
 };

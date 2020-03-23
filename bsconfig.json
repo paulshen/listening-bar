@@ -17,7 +17,8 @@
   "bs-dependencies": [
     "reason-react",
     "bs-webapi",
-    "bs-fetch"
+    "bs-fetch",
+    "reason-promise"
   ],
   "refmt": 3,
   "ppx-flags": [

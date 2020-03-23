@@ -25,18 +25,19 @@ promiseMiddleware((next, req, res) =>
 App.post(app, ~path="/login") @@
 promiseMiddleware((next, req, res) => {
   let bodyJson = Request.bodyJSON(req) |> Option.getExn;
-  let token =
+  let code =
     bodyJson
     ->Js.Json.decodeObject
     ->Option.getExn
-    ->Js.Dict.unsafeGet("token")
+    ->Js.Dict.unsafeGet("code")
     ->Js.Json.decodeString
     ->Option.getExn;
+  let%Repromise sessionId = Spotify.getToken(code);
   let responseJson =
     Js.Json.object_(
-      Js.Dict.fromArray([|("passToken", Js.Json.string(token))|]),
+      Js.Dict.fromArray([|("sessionId", Js.Json.string(sessionId))|]),
     );
-  Promise.resolved(Response.sendJson(responseJson, res));
+  res |> Response.sendJson(responseJson) |> Promise.resolved;
 });
 
 let onListen = e =>

@@ -22,6 +22,7 @@
     "bs-webapi": "^0.15.9",
     "react": "^16.8.1",
     "react-dom": "^16.8.1",
+    "reason-promise": "^1.0.2",
     "reason-react": ">=0.7.0"
   },
   "devDependencies": {

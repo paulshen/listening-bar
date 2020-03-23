@@ -15,11 +15,16 @@
     "bs-platform": "^7.2.2"
   },
   "dependencies": {
+    "@ahrefs/bs-dotenv": "^2.0.0",
     "body-parser": "^1.19.0",
     "bs-express": "^1.0.1",
     "bs-fetch": "^0.5.2",
     "bs-let": "0.1.11",
     "cors": "^2.8.5",
-    "reason-promise": "^1.0.2"
+    "dotenv": "^8.2.0",
+    "lowdb": "^1.0.0",
+    "node-fetch": "^2.6.0",
+    "reason-promise": "^1.0.2",
+    "uuid": "^7.0.2"
   }
 }

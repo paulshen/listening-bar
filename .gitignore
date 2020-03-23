@@ -7,3 +7,5 @@ npm-debug.log
 /bundleOutput/
 
 *.bs.js
+.env
+db.json

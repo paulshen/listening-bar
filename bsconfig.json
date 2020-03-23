@@ -16,7 +16,11 @@
   "namespace": true,
   "bs-dependencies": [
     "reason-react",
-    "bs-webapi"
+    "bs-webapi",
+    "bs-fetch"
   ],
-  "refmt": 3
+  "refmt": 3,
+  "ppx-flags": [
+    "bs-let/ppx"
+  ]
 }

@@ -17,6 +17,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "bs-fetch": "^0.5.2",
+    "bs-let": "0.1.11",
     "bs-webapi": "^0.15.9",
     "react": "^16.8.1",
     "react-dom": "^16.8.1",

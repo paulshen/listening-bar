@@ -11,11 +11,16 @@
   },
   "suffix": ".bs.js",
   "bs-dependencies": [
-
+    "bs-express",
+    "bs-fetch",
+    "reason-promise"
   ],
   "warnings": {
     "error" : "+101"
   },
   "namespace": true,
-  "refmt": 3
+  "refmt": 3,
+  "ppx-flags": [
+    "bs-let/ppx"
+  ]
 }

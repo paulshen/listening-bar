@@ -13,5 +13,11 @@
   "license": "MIT",
   "devDependencies": {
     "bs-platform": "^7.2.2"
+  },
+  "dependencies": {
+    "bs-express": "^1.0.1",
+    "bs-fetch": "^0.5.2",
+    "bs-let": "0.1.11",
+    "reason-promise": "^1.0.2"
   }
 }

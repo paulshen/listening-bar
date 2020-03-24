@@ -21,6 +21,8 @@ let getSocket = () => {
           )
         | LostConnection(roomId, connectionId) =>
           RoomStore.removeConnection(roomId, connectionId)
+        | LogoutConnection(roomId, connectionId) =>
+          RoomStore.logoutConnection(roomId, connectionId)
         | Connected(roomId, connections, serializedTrack, startTimestamp) =>
           let (trackId, _, _, _, _, _, _, _) = serializedTrack;
           RoomStore.updateRoom({
@@ -68,4 +70,11 @@ let publishCurrentTrack = (sessionId, trackId, startTimestamp) => {
       (trackId, startTimestamp),
     ),
   );
+};
+
+let logout = () => {
+  switch (RoomStore.getCurrentRoomId()) {
+  | Some(roomId) => Socket.emit(getSocket(), Logout(roomId))
+  | _ => ()
+  };
 };

@@ -11,6 +11,7 @@ type state = {
 type action =
   | AddConnection(string, SocketMessage.connection)
   | RemoveConnection(string, string)
+  | LogoutConnection(string, string)
   | UpdateRoom(room)
   | UpdateTrack(string, SocketMessage.roomTrack, float)
   | UpdateRoomId(option(string));
@@ -51,6 +52,25 @@ let api =
         {...state, rooms: clone};
       | None => state
       }
+    | LogoutConnection(roomId, connectionId) =>
+      switch (Js.Dict.get(state.rooms, roomId)) {
+      | Some((room: room)) =>
+        let clone = Js.Dict.fromArray(Js.Dict.entries(state.rooms));
+        clone->Js.Dict.set(
+          roomId,
+          {
+            ...room,
+            connections:
+              room.connections
+              |> Js.Array.map((connection: SocketMessage.connection) =>
+                   connection.id != connectionId
+                     ? connection : {id: connectionId, userId: ""}
+                 ),
+          },
+        );
+        {...state, rooms: clone};
+      | None => state
+      }
     | UpdateRoom(room) =>
       let clone = Js.Dict.fromArray(Js.Dict.entries(state.rooms));
       clone->Js.Dict.set(room.id, room);
@@ -82,3 +102,5 @@ let addConnection = (roomId, connection) =>
   api.dispatch(AddConnection(roomId, connection));
 let removeConnection = (roomId, connectionId) =>
   api.dispatch(RemoveConnection(roomId, connectionId));
+let logoutConnection = (roomId, connectionId) =>
+  api.dispatch(LogoutConnection(roomId, connectionId));

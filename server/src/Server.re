@@ -56,6 +56,16 @@ promiseMiddleware((next, req, res) => {
   res |> Response.sendJson(responseJson) |> Promise.resolved;
 });
 
+Router.get(apiRouter, ~path="/logout") @@
+Middleware.from((next, req, res) => {
+  let sessionId = Request.get("Authorization", req);
+  switch (sessionId) {
+  | Some(sessionId) => Persist.deleteSession(sessionId)
+  | None => ()
+  };
+  res |> Response.sendStatus(Ok);
+});
+
 let getAccessTokenForUserId = userId => {
   let user = Persist.getUser(userId);
   let%Repromise accessToken =
@@ -298,6 +308,26 @@ SocketServer.onConnect(
             }
           )
           |> ignore
+        | Logout(roomId) =>
+          switch (Js.Dict.get(rooms, roomId)) {
+          | Some(room) =>
+            let updatedRoom = {
+              ...room,
+              connections:
+                room.connections
+                |> Js.Array.map((connection: SocketMessage.connection) =>
+                     connection.id != socketId
+                       ? connection : {id: socketId, userId: ""}
+                   ),
+            };
+            rooms->Js.Dict.set(roomId, updatedRoom);
+            Persist.updateRoom(updatedRoom);
+
+            io
+            ->inRoom(roomId)
+            ->Socket.emit(LogoutConnection(roomId, socketId));
+          | None => ()
+          }
         };
       },
     );

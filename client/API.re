@@ -32,9 +32,30 @@ let login = code => {
     ->Js.Dict.unsafeGet("accessToken")
     ->Js.Json.decodeString
     ->Option.getExn;
-  Dom.Storage.(localStorage |> setItem("accessToken", accessToken));
   UserStore.login(sessionId);
   Promise.resolved(accessToken);
+};
+
+let logout = () => {
+  let sessionId = UserStore.getSessionId();
+  let _ =
+    switch (sessionId) {
+    | Some(sessionId) =>
+      let%Repromise.Js response =
+        Fetch.fetchWithInit(
+          Constants.serverUrl ++ "/api/logout",
+          Fetch.RequestInit.make(
+            ~method_=Post,
+            ~headers=Fetch.HeadersInit.make({"Authorization": sessionId}),
+            ~mode=CORS,
+            (),
+          ),
+        );
+      Promise.resolved();
+    | None => Promise.resolved()
+    };
+  Dom.Storage.(localStorage |> removeItem("sessionId"));
+  UserStore.logout();
 };
 
 let fetchUser = () => {

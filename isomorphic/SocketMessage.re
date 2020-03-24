@@ -90,9 +90,11 @@ let deserializeConnection = ((id, userId)) => {
 
 type clientToServer =
   | JoinRoom(string, string)
-  | PublishTrackState(string, string, trackState);
+  | PublishTrackState(string, string, trackState)
+  | Logout(string);
 type serverToClient =
   | Connected(string, array((string, string)), serializedRoomTrack, float)
   | NewConnection(string, (string, string))
   | LostConnection(string, string)
+  | LogoutConnection(string, string)
   | PublishTrackState(string, serializedRoomTrack, float);

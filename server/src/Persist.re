@@ -13,6 +13,7 @@ module LowDb = {
   [@bs.send] external defaults: (t, 'data) => mutation = "defaults";
   [@bs.send] external push: (t, 'data) => mutation = "push";
   [@bs.send] external set: (t, string, 'data) => mutation = "set";
+  [@bs.send] external unset: (t, string) => mutation = "unset";
   [@bs.send] external write: mutation => unit = "write";
 
   [@bs.send] external value: t => option('data) = "value";
@@ -55,6 +56,10 @@ let addSession = (session: User.session) => {
 
 let getSession = (sessionId: string): option(User.session) => {
   LowDb.(db->get("sessions")->get(sessionId)->value);
+};
+
+let deleteSession = (sessionId: string) => {
+  LowDb.(db->get("sessions")->unset(sessionId)->write);
 };
 
 let getUser = (userId: string): option(User.t) => {

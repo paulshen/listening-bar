@@ -27,7 +27,9 @@
     "reason-promise",
     "restorative",
     "@glennsl/bs-json",
-    "bs-socket"
+    "bs-socket",
+    "bs-css-emotion",
+    "bs-css"
   ],
   "refmt": 3,
   "ppx-flags": [

@@ -140,7 +140,7 @@ Middleware.from((next, req, res) => {
     |> Response.sendJson(
          Js.Json.array(
            room.connections
-           |> Js.Array.map((connection: Room.connection) =>
+           |> Js.Array.map((connection: SocketMessage.connection) =>
                 Js.Json.string(connection.userId)
               ),
          ),
@@ -165,9 +165,18 @@ SocketServer.onConnect(
           let session: User.session =
             Persist.getSession(sessionId)->Option.getExn;
           socket->Socket.join(roomId) |> ignore;
+          let connection: SocketMessage.connection = {
+            id: socketId,
+            userId: session.userId,
+          };
           socket
           ->Socket.to_(roomId)
-          ->Socket.emit(NewUser(roomId, session.userId));
+          ->Socket.emit(
+              NewConnection(
+                roomId,
+                SocketMessage.serializeConnection(connection),
+              ),
+            );
           let room =
             Option.getWithDefault(
               rooms->Js.Dict.get(roomId),
@@ -175,19 +184,14 @@ SocketServer.onConnect(
             );
           let updatedRoom =
             if (room.connections
-                |> Js.Array.findIndex((connection: Room.connection) =>
+                |> Js.Array.findIndex((connection: SocketMessage.connection) =>
                      connection.id == socketId
                    )
                 == (-1)) {
               {
                 ...room,
                 connections:
-                  room.connections
-                  |> Js.Array.concat([|
-                       (
-                         {id: socketId, userId: session.userId}: Room.connection
-                       ),
-                     |]),
+                  room.connections |> Js.Array.concat([|connection|]),
               };
             } else {
               room;
@@ -197,9 +201,7 @@ SocketServer.onConnect(
             Connected(
               roomId,
               updatedRoom.connections
-              |> Js.Array.map((connection: Room.connection) =>
-                   connection.userId
-                 ),
+              |> Js.Array.map(SocketMessage.serializeConnection),
               SocketMessage.serializeOptionTrackState(updatedRoom.trackState),
             ),
           );
@@ -224,5 +226,29 @@ SocketServer.onConnect(
         };
       },
     );
+
+    socket->Socket.onDisconnect(() => {
+      switch (roomIdRef^) {
+      | Some(roomId) =>
+        switch (Js.Dict.get(rooms, roomId)) {
+        | Some(room) =>
+          socket
+          ->SocketServer.Socket.to_(roomId)
+          ->Socket.emit(LostConnection(roomId, socketId));
+          let updatedRoom = {
+            ...room,
+            connections:
+              room.connections
+              |> Js.Array.filter((connection: SocketMessage.connection) =>
+                   connection.id != socketId
+                 ),
+          };
+          rooms->Js.Dict.set(roomId, updatedRoom);
+          Persist.updateRoom(updatedRoom);
+        | None => ()
+        }
+      | None => ()
+      }
+    });
   },
 );

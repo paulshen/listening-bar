@@ -1,10 +1,5 @@
-type connection = {
-  id: string,
-  userId: string,
-};
-
 type t = {
   id: string,
-  connections: array(connection),
+  connections: array(SocketMessage.connection),
   trackState: option(SocketMessage.trackState),
 };

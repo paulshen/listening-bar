@@ -1,6 +1,6 @@
 type room = {
   id: string,
-  userIds: array(string),
+  connections: array(SocketMessage.connection),
   trackState: option(SocketMessage.trackState),
 };
 
@@ -9,7 +9,8 @@ type state = {
   currentRoomId: option(string),
 };
 type action =
-  | AddUser(string, string)
+  | AddConnection(string, SocketMessage.connection)
+  | RemoveConnection(string, string)
   | UpdateRoom(room)
   | UpdateTrackState(string, SocketMessage.trackState)
   | UpdateRoomId(option(string));
@@ -18,19 +19,36 @@ let api =
   Restorative.createStore(
     {rooms: Js.Dict.empty(), currentRoomId: None}, (state, action) => {
     switch (action) {
-    | AddUser(roomId, userId) =>
+    | AddConnection(roomId, connection) =>
       switch (Js.Dict.get(state.rooms, roomId)) {
       | Some((room: room)) =>
-        if (room.userIds |> Js.Array.includes(userId)) {
-          state;
-        } else {
-          let clone = Js.Dict.fromArray(Js.Dict.entries(state.rooms));
-          clone->Js.Dict.set(
-            roomId,
-            {...room, userIds: room.userIds |> Js.Array.concat([|userId|])},
-          );
-          {...state, rooms: clone};
-        }
+        let clone = Js.Dict.fromArray(Js.Dict.entries(state.rooms));
+        clone->Js.Dict.set(
+          roomId,
+          {
+            ...room,
+            connections: room.connections |> Js.Array.concat([|connection|]),
+          },
+        );
+        {...state, rooms: clone};
+      | None => state
+      }
+    | RemoveConnection(roomId, connectionId) =>
+      switch (Js.Dict.get(state.rooms, roomId)) {
+      | Some((room: room)) =>
+        let clone = Js.Dict.fromArray(Js.Dict.entries(state.rooms));
+        clone->Js.Dict.set(
+          roomId,
+          {
+            ...room,
+            connections:
+              room.connections
+              |> Js.Array.filter((connection: SocketMessage.connection) =>
+                   connection.id != connectionId
+                 ),
+          },
+        );
+        {...state, rooms: clone};
       | None => state
       }
     | UpdateRoom(room) =>
@@ -57,4 +75,7 @@ let updateCurrentRoomId = roomId => api.dispatch(UpdateRoomId(roomId));
 let updateRoom = (room: room) => api.dispatch(UpdateRoom(room));
 let updateTrackState = (roomId, trackState) =>
   api.dispatch(UpdateTrackState(roomId, trackState));
-let addUser = (roomId, userId) => api.dispatch(AddUser(roomId, userId));
+let addConnection = (roomId, connection) =>
+  api.dispatch(AddConnection(roomId, connection));
+let removeConnection = (roomId, connectionId) =>
+  api.dispatch(RemoveConnection(roomId, connectionId));

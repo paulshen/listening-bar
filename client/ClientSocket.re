@@ -7,11 +7,18 @@ Socket.on(
   message => {
     Js.log(message);
     switch (message) {
-    | NewUser(roomId, userId) => RoomStore.addUser(roomId, userId)
-    | Connected(roomId, userIds, serializedTrackState) =>
+    | NewConnection(roomId, connection) =>
+      RoomStore.addConnection(
+        roomId,
+        SocketMessage.deserializeConnection(connection),
+      )
+    | LostConnection(roomId, connectionId) =>
+      RoomStore.removeConnection(roomId, connectionId)
+    | Connected(roomId, connections, serializedTrackState) =>
       RoomStore.updateRoom({
         id: roomId,
-        userIds,
+        connections:
+          connections |> Js.Array.map(SocketMessage.deserializeConnection),
         trackState:
           SocketMessage.deserializeOptionTrackState(serializedTrackState),
       });

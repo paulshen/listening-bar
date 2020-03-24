@@ -51,9 +51,11 @@ module LoggedInRoom = {
       {switch (room) {
        | Some(room) =>
          <div>
-           {room.userIds
-            |> Js.Array.mapi((userId, i) =>
-                 <div key={string_of_int(i)}> {React.string(userId)} </div>
+           {room.connections
+            |> Js.Array.map((connection: SocketMessage.connection) =>
+                 <div key={connection.id}>
+                   {React.string(connection.userId)}
+                 </div>
                )
             |> React.array}
          </div>

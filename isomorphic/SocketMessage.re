@@ -1,4 +1,8 @@
 type trackState = (string, float, float);
+type connection = {
+  id: string,
+  userId: string,
+};
 
 let serializeOptionTrackState = trackState => {
   switch (trackState) {
@@ -27,10 +31,18 @@ let deserializeOptionTrackState = input => {
   };
 };
 
+let serializeConnection = (connection: connection) => {
+  (connection.id, connection.userId);
+};
+let deserializeConnection = ((id, userId)) => {
+  {id, userId};
+};
+
 type clientToServer =
   | JoinRoom(string, string)
   | PublishTrackState(string, trackState);
 type serverToClient =
-  | Connected(string, array(string), string)
-  | NewUser(string, string)
+  | Connected(string, array((string, string)), string)
+  | NewConnection(string, (string, string))
+  | LostConnection(string, string)
   | PublishTrackState(string, trackState);

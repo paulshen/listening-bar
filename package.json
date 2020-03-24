@@ -7,6 +7,7 @@
     "clean": "bsb -clean-world",
     "client": "moduleserve ./ --port 8000 --spa",
     "server": "node ./server/src/Server.bs.js",
+    "webpack": "webpack",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -30,6 +31,8 @@
   },
   "devDependencies": {
     "bs-platform": "^7.2.2",
-    "moduleserve": "^0.9.0"
+    "moduleserve": "^0.9.0",
+    "webpack": "^4.42.0",
+    "webpack-cli": "^3.3.11"
   }
 }

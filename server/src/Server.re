@@ -28,12 +28,14 @@ let getProperty = (req, property) => {
   Js.Dict.get(reqData, property);
 };
 
-App.get(app, ~path="/hello") @@
+let apiRouter = router();
+
+Router.get(apiRouter, ~path="/hello") @@
 promiseMiddleware((next, req, res) =>
   res |> Response.sendString("Hello World!") |> Promise.Js.resolved
 );
 
-App.post(app, ~path="/login") @@
+Router.post(apiRouter, ~path="/login") @@
 promiseMiddleware((next, req, res) => {
   let bodyJson = Request.bodyJSON(req) |> Option.getExn;
   let code =
@@ -54,7 +56,7 @@ promiseMiddleware((next, req, res) => {
   res |> Response.sendJson(responseJson) |> Promise.resolved;
 });
 
-App.getWithMany(app, ~path="/user") @@
+Router.getWithMany(apiRouter, ~path="/user") @@
 [|
   Middleware.from((next, req, res) => {
     switch (
@@ -113,6 +115,28 @@ App.getWithMany(app, ~path="/user") @@
   }),
 |];
 
+App.useRouterOnPath(app, ~path="/api", apiRouter);
+
+let dirname: option(string) = [%bs.node __dirname];
+App.get(app, ~path="/index.js") @@
+Middleware.from((next, req, res) => {
+  Response.sendFile(
+    Node.Path.dirname(Node.Path.dirname(Option.getExn(dirname)))
+    ++ "/build/index.js",
+    Js.Dict.empty(),
+    res,
+  )
+});
+App.get(app, ~path="/*") @@
+Middleware.from((next, req, res) => {
+  Response.sendFile(
+    Node.Path.dirname(Node.Path.dirname(Option.getExn(dirname)))
+    ++ "/build/index.html",
+    Js.Dict.empty(),
+    res,
+  )
+});
+
 let onListen = e =>
   switch (e) {
   | exception (Js.Exn.Error(e)) =>
@@ -126,7 +150,7 @@ let server = App.listen(app, ~port=3030, ~onListen, ());
 let rooms: Js.Dict.t(Room.t) = Js.Dict.empty();
 
 let io = SocketServer.createWithHttp(server);
-App.get(app, ~path="/rooms/:roomId") @@
+Router.get(apiRouter, ~path="/rooms/:roomId") @@
 Middleware.from((next, req, res) => {
   let roomId =
     Request.params(req)
@@ -141,7 +165,7 @@ Middleware.from((next, req, res) => {
          Js.Json.array(
            room.connections
            |> Js.Array.map((connection: SocketMessage.connection) =>
-                Js.Json.string(connection.userId)
+                Js.Json.stringArray([|connection.id, connection.userId|])
               ),
          ),
        )

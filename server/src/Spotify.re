@@ -43,7 +43,7 @@ let getToken = code => {
     ),
     ("code", code),
     ("grant_type", "authorization_code"),
-    ("redirect_uri", "http://localhost:8000/oauth/callback"),
+    ("redirect_uri", Constants.clientUrl ++ "/oauth/callback"),
   |];
   let encodedFormData =
     formData

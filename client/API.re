@@ -3,7 +3,7 @@ open Belt;
 let login = code => {
   let%Repromise.Js response =
     Fetch.fetchWithInit(
-      Constants.serverUrl ++ "/login",
+      Constants.serverUrl ++ "/api/login",
       Fetch.RequestInit.make(
         ~method_=Post,
         ~body=
@@ -41,7 +41,7 @@ let fetchUser = () => {
   | Some(sessionId) =>
     let%Repromise.Js response =
       Fetch.fetchWithInit(
-        Constants.serverUrl ++ "/user",
+        Constants.serverUrl ++ "/api/user",
         Fetch.RequestInit.make(
           ~method_=Get,
           ~headers=Fetch.HeadersInit.make({"Authorization": sessionId}),

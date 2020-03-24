@@ -9,3 +9,5 @@ npm-debug.log
 *.bs.js
 .env
 db.json
+
+build/index.js

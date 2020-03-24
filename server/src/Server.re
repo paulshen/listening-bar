@@ -118,10 +118,10 @@ let onListen = e =>
   | exception (Js.Exn.Error(e)) =>
     Js.log(e);
     Node.Process.exit(1);
-  | _ => Js.log @@ "Listening at http://127.0.0.1:3000"
+  | _ => Js.log @@ "Listening at http://127.0.0.1:3030"
   };
 
-let server = App.listen(app, ~port=3000, ~onListen, ());
+let server = App.listen(app, ~port=3030, ~onListen, ());
 
 let rooms: Js.Dict.t(Room.t) = Js.Dict.empty();
 
@@ -153,7 +153,6 @@ SocketServer.onConnect(
   io,
   socket => {
     open SocketServer;
-    Js.log2("Connection!", socket);
     let socketId = Socket.getId(socket);
     let roomIdRef = ref(None);
     Socket.on(

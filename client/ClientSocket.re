@@ -1,6 +1,6 @@
 module Socket = BsSocket.Client.Make(SocketMessage);
 
-let socket = Socket.createWithUrl("http://localhost:3000");
+let socket = Socket.createWithUrl(Constants.serverUrl);
 
 Socket.on(
   socket,

@@ -59,20 +59,11 @@ module LoggedInRoom = {
       </button>
       {switch (roomTrackState) {
        | Some((roomTrack, startTimestamp)) =>
-         <div>
-           <div> <img src={roomTrack.albumImage} /> </div>
-           <div>
-             <a href={"https://open.spotify.com/track/" ++ roomTrack.trackId}>
-               {React.string(roomTrack.trackName)}
-             </a>
-           </div>
-           <div>
-             <a
-               href={"https://open.spotify.com/artist/" ++ roomTrack.artistId}>
-               {React.string(roomTrack.artistName)}
-             </a>
-           </div>
-         </div>
+         <CurrentTrack
+           roomTrack
+           startTimestamp
+           key={roomTrack.trackId ++ Js.Float.toString(startTimestamp)}
+         />
        | None => React.null
        }}
       {switch (room) {

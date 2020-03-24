@@ -26,10 +26,24 @@ let make = (~roomId: string) => {
   let room = RoomStore.useRoom(roomId);
   let (isSyncing, setIsSyncing) = React.useState(() => false);
 
+  if (Belt.Option.isNone(user) && isSyncing) {
+    setIsSyncing(_ => false);
+  };
+
   React.useEffect0(() => {
     ClientSocket.connectToRoom(roomId, UserStore.getSessionId());
     None;
   });
+
+  React.useEffect1(
+    () => {
+      if (isSyncing) {
+        SpotifyClient.turnOffRepeat() |> ignore;
+      };
+      None;
+    },
+    [|isSyncing|],
+  );
 
   let (_, forceUpdate) = React.useState(() => 1);
   let roomPlaylist = Belt.Option.flatMap(room, room => room.playlist);
@@ -82,8 +96,7 @@ let make = (~roomId: string) => {
         };
       | None =>
         if (isSyncing) {
-          // TODO: stop playing
-          ()
+          SpotifyClient.pausePlayer() |> ignore;
         };
         None;
       },

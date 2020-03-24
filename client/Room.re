@@ -23,8 +23,6 @@ module LoggedInRoom = {
   let make = (~roomId: string, ~user: UserStore.user) => {
     let room = RoomStore.useRoom(roomId);
     let (isSyncing, setIsSyncing) = React.useState(() => false);
-    let {currentTrack: localCurrentTrack}: SpotifyStore.state =
-      SpotifyStore.useState();
 
     React.useEffect0(() => {
       ClientSocket.connectToRoom(
@@ -34,11 +32,11 @@ module LoggedInRoom = {
       None;
     });
 
-    let trackState = Belt.Option.flatMap(room, room => room.track);
+    let roomTrackState = Belt.Option.flatMap(room, room => room.track);
     React.useEffect2(
       () => {
         if (isSyncing) {
-          switch (trackState) {
+          switch (roomTrackState) {
           | Some((roomTrack, startTimestamp)) =>
             let positionMs = Js.Date.now() -. startTimestamp;
             SpotifyClient.playTrack(roomTrack.trackId, positionMs) |> ignore;
@@ -47,7 +45,7 @@ module LoggedInRoom = {
         };
         None;
       },
-      (trackState, isSyncing),
+      (roomTrackState, isSyncing),
     );
 
     <div>
@@ -59,12 +57,21 @@ module LoggedInRoom = {
       <button onClick={_ => publishCurrentTrack() |> ignore}>
         {React.string("Publish Current Track")}
       </button>
-      {switch (localCurrentTrack) {
-       | Some(currentTrack) =>
+      {switch (roomTrackState) {
+       | Some((roomTrack, startTimestamp)) =>
          <div>
-           <div> <img src={currentTrack.album.images[0].url} /> </div>
-           <div> {React.string(currentTrack.name)} </div>
-           <div> {React.string(currentTrack.artists[0].name)} </div>
+           <div> <img src={roomTrack.albumImage} /> </div>
+           <div>
+             <a href={"https://open.spotify.com/track/" ++ roomTrack.trackId}>
+               {React.string(roomTrack.trackName)}
+             </a>
+           </div>
+           <div>
+             <a
+               href={"https://open.spotify.com/artist/" ++ roomTrack.artistId}>
+               {React.string(roomTrack.artistName)}
+             </a>
+           </div>
          </div>
        | None => React.null
        }}

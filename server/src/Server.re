@@ -176,6 +176,11 @@ Middleware.from((next, req, res) => {
   };
 });
 
+[@bs.send]
+external inRoom:
+  (BsSocket.Server.serverT, BsSocket.Server.room) => BsSocket.Server.socketT =
+  "in";
+
 SocketServer.onConnect(
   io,
   socket => {
@@ -269,8 +274,8 @@ SocketServer.onConnect(
                 | None => ()
                 };
 
-                socket
-                ->Socket.to_(roomId)
+                io
+                ->inRoom(roomId)
                 ->Socket.emit(
                     PublishTrackState(
                       roomId,

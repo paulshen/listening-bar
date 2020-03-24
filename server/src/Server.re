@@ -193,12 +193,20 @@ SocketServer.onConnect(
         Js.log(message);
         switch (message) {
         | JoinRoom(roomId, sessionId) =>
-          let session: User.session =
-            Persist.getSession(sessionId)->Option.getExn;
           socket->Socket.join(roomId) |> ignore;
+          let session: option(User.session) =
+            if (sessionId == "") {
+              None;
+            } else {
+              Persist.getSession(sessionId);
+            };
           let connection: SocketMessage.connection = {
             id: socketId,
-            userId: session.userId,
+            userId:
+              switch (session) {
+              | Some(session) => session.userId
+              | None => ""
+              },
           };
           socket
           ->Socket.to_(roomId)

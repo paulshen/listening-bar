@@ -42,7 +42,10 @@ Socket.on(
 );
 
 let connectToRoom = (roomId, sessionId) => {
-  Socket.emit(socket, JoinRoom(roomId, sessionId));
+  Socket.emit(
+    socket,
+    JoinRoom(roomId, Belt.Option.getWithDefault(sessionId, "")),
+  );
 };
 
 let publishCurrentTrack = (sessionId, trackId, startTimestamp) => {

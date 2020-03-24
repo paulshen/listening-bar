@@ -22,7 +22,8 @@ module LoggedInRoom = {
   [@react.component]
   let make = (~roomId: string, ~user: UserStore.user) => {
     let room = RoomStore.useRoom(roomId);
-    let {currentTrack, playerState}: SpotifyStore.state =
+    let (isSyncing, setIsSyncing) = React.useState(() => false);
+    let {currentTrack: localCurrentTrack}: SpotifyStore.state =
       SpotifyStore.useState();
 
     React.useEffect0(() => {
@@ -33,13 +34,32 @@ module LoggedInRoom = {
       None;
     });
 
+    let trackState = Belt.Option.flatMap(room, room => room.trackState);
+    React.useEffect2(
+      () => {
+        if (isSyncing) {
+          switch (trackState) {
+          | Some((trackId, startTimestamp, _durationMs)) =>
+            let positionMs = Js.Date.now() -. startTimestamp;
+            SpotifyClient.playTrack(trackId, positionMs) |> ignore;
+          | None => ()
+          };
+        };
+        None;
+      },
+      (trackState, isSyncing),
+    );
+
     <div>
       <div> {React.string(roomId)} </div>
       <div> {React.string(user.id)} </div>
+      <button onClick={_ => setIsSyncing(sync => !sync)}>
+        {React.string(isSyncing ? "Stop Sync" : "Start Sync")}
+      </button>
       <button onClick={_ => publishCurrentTrack() |> ignore}>
         {React.string("Publish Current Track")}
       </button>
-      {switch (currentTrack) {
+      {switch (localCurrentTrack) {
        | Some(currentTrack) =>
          <div>
            <div> <img src={currentTrack.album.images[0].url} /> </div>

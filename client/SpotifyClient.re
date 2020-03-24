@@ -86,3 +86,39 @@ let rec getCurrentTrack = () => {
   | None => Promise.resolved(None)
   };
 };
+
+let playTrack = (trackId, positionMs) => {
+  switch (Belt.Option.map(UserStore.getUser(), user => user.accessToken)) {
+  | Some(accessToken) =>
+    let%Repromise.Js response =
+      Fetch.fetchWithInit(
+        "https://api.spotify.com/v1/me/player/play",
+        Fetch.RequestInit.make(
+          ~method_=Put,
+          ~body=
+            Fetch.BodyInit.make(
+              Js.Json.stringify(
+                Js.Json.object_(
+                  Js.Dict.fromArray([|
+                    (
+                      "uris",
+                      Js.Json.stringArray([|{j|spotify:track:$trackId|j}|]),
+                    ),
+                    ("position_ms", Js.Json.number(positionMs)),
+                  |]),
+                ),
+              ),
+            ),
+          ~headers=
+            Fetch.HeadersInit.make({
+              "Authorization": "Bearer " ++ accessToken,
+              "Content-Type": "application/json",
+            }),
+          (),
+        ),
+      );
+    let response = Result.getExn(response);
+    Promise.resolved();
+  | None => Promise.resolved()
+  };
+};

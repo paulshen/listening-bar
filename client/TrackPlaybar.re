@@ -1,3 +1,8 @@
+module Styles = {
+  open Css;
+  let root = style([fontSize(px(12))]);
+};
+
 let displaySeconds = seconds => {
   let minutes = seconds / 60;
   let seconds = seconds mod 60;
@@ -16,11 +21,11 @@ let make = (~startTimestamp: float, ~roomTrack: SocketMessage.roomTrack) => {
     Some(() => {Js.Global.clearInterval(interval)});
   });
 
-  <div>
+  <div className=Styles.root>
     {React.string(
        displaySeconds(int_of_float((now -. startTimestamp) /. 1000.)),
      )}
-    {React.string("/")}
+    {React.string(" / ")}
     {React.string(
        displaySeconds(int_of_float(roomTrack.durationMs /. 1000.)),
      )}

@@ -1,3 +1,9 @@
+module Styles = {
+  open Css;
+  let trackName = style([fontSize(px(24))]);
+  let trackArtist = style([fontSize(px(18))]);
+};
+
 [@react.component]
 let make = (~roomTrack: SocketMessage.roomTrack, ~startTimestamp: float) => {
   let (hasEnded, setHasEnded) =
@@ -27,12 +33,16 @@ let make = (~roomTrack: SocketMessage.roomTrack, ~startTimestamp: float) => {
         />
       </div>
       <div>
-        <a href={"https://open.spotify.com/track/" ++ roomTrack.trackId}>
+        <a
+          href={"https://open.spotify.com/track/" ++ roomTrack.trackId}
+          className=Styles.trackName>
           {React.string(roomTrack.trackName)}
         </a>
       </div>
       <div>
-        <a href={"https://open.spotify.com/artist/" ++ roomTrack.artistId}>
+        <a
+          href={"https://open.spotify.com/artist/" ++ roomTrack.artistId}
+          className=Styles.trackArtist>
           {React.string(roomTrack.artistName)}
         </a>
       </div>

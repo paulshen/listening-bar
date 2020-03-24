@@ -6,12 +6,12 @@ open Belt.Option;
   global(
     "body",
     [
-      backgroundColor(hex("3c3027")),
+      backgroundColor(hex("3E312B")),
       color(hex("f0f0f0")),
-      fontFamily(`custom("Noto Sans")),
+      fontFamily(`custom("Barlow Semi Condensed")),
     ],
   );
-  global("a", [color(hex("f0f0f0"))]);
+  global("a", [color(hex("f0f0f0")), textDecoration(none)]);
 };
 
 let root =

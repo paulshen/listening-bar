@@ -33,6 +33,7 @@ let login = code => {
     ->Js.Json.decodeString
     ->Option.getExn;
   Dom.Storage.(localStorage |> setItem("accessToken", accessToken));
+  UserStore.login(sessionId);
   Promise.resolved(accessToken);
 };
 

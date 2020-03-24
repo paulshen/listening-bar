@@ -25,6 +25,7 @@ let getSessionId = () => api.getState().sessionId;
 let useUser = () => api.useStoreWithSelector(state => state.user, ());
 let getUser = () => api.getState().user;
 
+let login = sessionId => api.dispatch(Login(sessionId));
 let updateUser = (user: user) => {
   api.dispatch(UpdateUser(user));
 };

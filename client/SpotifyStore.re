@@ -1,36 +1,13 @@
-type artist = {
-  id: string,
-  name: string,
-};
-type albumImage = {
-  url: string,
-  width: int,
-  height: int,
-};
-type album = {
-  id: string,
-  images: array(albumImage),
-  name: string,
-};
-type track = {
-  id: string,
-  name: string,
-  uri: string,
-  durationMs: float,
-  album,
-  artists: array(artist),
-};
-
 type playerState =
   | NotPlaying
   | Playing(float);
 
 type state = {
-  currentTrack: option(track),
+  currentTrack: option(SpotifyTypes.track),
   playerState,
 };
 type action =
-  | UpdateState(option(track), playerState);
+  | UpdateState(option(SpotifyTypes.track), playerState);
 
 let api =
   Restorative.createStore(

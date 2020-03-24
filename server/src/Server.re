@@ -56,6 +56,29 @@ promiseMiddleware((next, req, res) => {
   res |> Response.sendJson(responseJson) |> Promise.resolved;
 });
 
+let getAccessTokenForUserId = userId => {
+  let user = Persist.getUser(userId);
+  let%Repromise accessToken =
+    switch ((user: option(User.t))) {
+    | Some(user) =>
+      if (user.tokenExpireTime < Js.Date.now()) {
+        let%Repromise (accessToken, tokenExpireTime) =
+          Spotify.refreshToken(user.refreshToken);
+        Persist.updateUser({
+          ...user,
+          id: userId,
+          accessToken,
+          tokenExpireTime,
+        });
+        Promise.resolved(Some(accessToken));
+      } else {
+        Promise.resolved(Some(user.accessToken));
+      }
+    | None => Promise.resolved(None)
+    };
+  Promise.resolved(accessToken);
+};
+
 Router.getWithMany(apiRouter, ~path="/user") @@
 [|
   Middleware.from((next, req, res) => {
@@ -70,28 +93,8 @@ Router.getWithMany(apiRouter, ~path="/user") @@
   }),
   promiseMiddleware((next, req, res) => {
     let userId =
-      Option.map(getProperty(req, "session"), json =>
-        Obj.magic(json)##userId
-      );
-    let user = userId->Option.flatMap(userId => Persist.getUser(userId));
-    let%Repromise accessToken =
-      switch ((user: option(User.t))) {
-      | Some(user) =>
-        if (user.tokenExpireTime < Js.Date.now()) {
-          let%Repromise (accessToken, tokenExpireTime) =
-            Spotify.refreshToken(user.refreshToken);
-          Persist.updateUser({
-            ...user,
-            id: Option.getExn(userId),
-            accessToken,
-            tokenExpireTime,
-          });
-          Promise.resolved(Some(accessToken));
-        } else {
-          Promise.resolved(Some(user.accessToken));
-        }
-      | None => Promise.resolved(None)
-      };
+      Obj.magic(Option.getExn(getProperty(req, "session")))##userId;
+    let%Repromise accessToken = getAccessTokenForUserId(userId);
     let responseJson =
       Js.Json.object_(
         Js.Dict.fromArray([|
@@ -203,7 +206,7 @@ SocketServer.onConnect(
           let room =
             Option.getWithDefault(
               rooms->Js.Dict.get(roomId),
-              {id: roomId, connections: [||], trackState: None},
+              {id: roomId, connections: [||], track: None},
             );
           let updatedRoom =
             if (room.connections
@@ -225,27 +228,63 @@ SocketServer.onConnect(
               roomId,
               updatedRoom.connections
               |> Js.Array.map(SocketMessage.serializeConnection),
-              SocketMessage.serializeOptionTrackState(updatedRoom.trackState),
+              switch (updatedRoom.track) {
+              | None => ("", "", "", "", "", "", "", 0.)
+              | Some((serializedTrack, _)) => serializedTrack
+              },
+              switch (updatedRoom.track) {
+              | None => 0.
+              | Some((_, startTimestamp)) => startTimestamp
+              },
             ),
           );
           roomIdRef := Some(roomId);
-        | PublishTrackState(roomId, trackState) =>
-          switch (roomIdRef^) {
-          | Some(storedRoomId) =>
-            // TODO: check roomId == storedRoomId
-            switch (Js.Dict.get(rooms, roomId)) {
-            | Some(room) =>
-              let updatedRoom = {...room, trackState: Some(trackState)};
-              rooms->Js.Dict.set(roomId, updatedRoom);
-              Persist.updateRoom(updatedRoom);
-            | None => ()
-            };
+        | PublishTrackState(sessionId, roomId, trackState) =>
+          (
+            switch (roomIdRef^) {
+            | Some(storedRoomId) =>
+              let (trackId, startTimestamp) = trackState;
+              let%Repromise accessToken =
+                Persist.getSession(sessionId)
+                ->Option.map(session =>
+                    getAccessTokenForUserId(session.userId)
+                  )
+                ->Option.getWithDefault(Promise.resolved(None));
+              switch (accessToken) {
+              | Some(accessToken) =>
+                let%Repromise track =
+                  Spotify.getTrackInfo(~accessToken, ~trackId);
+                let serializedRoomTrack =
+                  SocketMessage.serializeSpotifyTrack(track);
 
-            socket
-            ->Socket.to_(roomId)
-            ->Socket.emit(PublishTrackState(roomId, trackState));
-          | None => ()
-          }
+                // TODO: check roomId == storedRoomId
+                switch (Js.Dict.get(rooms, roomId)) {
+                | Some(room) =>
+                  let updatedRoom = {
+                    ...room,
+                    track: Some((serializedRoomTrack, startTimestamp)),
+                  };
+                  rooms->Js.Dict.set(roomId, updatedRoom);
+                  Persist.updateRoom(updatedRoom);
+                | None => ()
+                };
+
+                socket
+                ->Socket.to_(roomId)
+                ->Socket.emit(
+                    PublishTrackState(
+                      roomId,
+                      serializedRoomTrack,
+                      startTimestamp,
+                    ),
+                  );
+                Promise.resolved();
+              | None => Promise.resolved()
+              };
+            | None => Promise.resolved()
+            }
+          )
+          |> ignore
         };
       },
     );

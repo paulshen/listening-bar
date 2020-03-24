@@ -28,7 +28,7 @@ let rec getCurrentTrack = () => {
         ->Js.Json.decodeObject
         ->Option.getExn
         ->Js.Dict.unsafeGet("item");
-      let track: SpotifyStore.track =
+      let track: SpotifyTypes.track =
         Json.Decode.{
           id: item |> field("id", string),
           name: item |> field("name", string),
@@ -51,11 +51,11 @@ let rec getCurrentTrack = () => {
                                   url: json |> field("url", string),
                                   width: json |> field("width", int),
                                   height: json |> field("height", int),
-                                }: SpotifyStore.albumImage
+                                }: SpotifyTypes.albumImage
                               )
                             ),
                           ),
-                   }: SpotifyStore.album
+                   }: SpotifyTypes.album
                  )
                ),
           artists:
@@ -67,7 +67,7 @@ let rec getCurrentTrack = () => {
                      {
                        id: json |> field("id", string),
                        name: json |> field("name", string),
-                     }: SpotifyStore.artist
+                     }: SpotifyTypes.artist
                    )
                  ),
                ),

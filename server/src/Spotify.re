@@ -146,3 +146,63 @@ let refreshToken = refreshToken => {
 
   Promise.resolved((accessToken, tokenExpireTime));
 };
+
+let getTrackInfo = (~accessToken, ~trackId) => {
+  let%Repromise.Js response =
+    Fetch.fetchWithInit(
+      "https://api.spotify.com/v1/tracks/" ++ trackId,
+      Fetch.RequestInit.make(
+        ~method_=Get,
+        ~headers=
+          Fetch.HeadersInit.make({"Authorization": "Bearer " ++ accessToken}),
+        (),
+      ),
+    );
+  let%Repromise.Js json = Fetch.Response.json(Result.getExn(response));
+  let item = Result.getExn(json);
+  let track: SpotifyTypes.track =
+    Json.Decode.{
+      id: item |> field("id", string),
+      name: item |> field("name", string),
+      durationMs: item |> field("duration_ms", Json.Decode.float),
+      uri: item |> field("uri", string),
+      album:
+        item
+        |> field("album", (json) =>
+             (
+               {
+                 id: json |> field("id", string),
+                 name: json |> field("name", string),
+                 images:
+                   json
+                   |> field(
+                        "images",
+                        array((json) =>
+                          (
+                            {
+                              url: json |> field("url", string),
+                              width: json |> field("width", int),
+                              height: json |> field("height", int),
+                            }: SpotifyTypes.albumImage
+                          )
+                        ),
+                      ),
+               }: SpotifyTypes.album
+             )
+           ),
+      artists:
+        item
+        |> field(
+             "artists",
+             array((json) =>
+               (
+                 {
+                   id: json |> field("id", string),
+                   name: json |> field("name", string),
+                 }: SpotifyTypes.artist
+               )
+             ),
+           ),
+    };
+  Promise.resolved(track);
+};

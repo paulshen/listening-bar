@@ -9,9 +9,9 @@ module LoggedInRoom = {
       );
       if (isPlaying) {
         ClientSocket.publishCurrentTrack(
+          UserStore.getSessionId()->Belt.Option.getExn,
           track.id,
           startTimestamp,
-          track.durationMs,
         );
       };
     | None => ()
@@ -34,14 +34,14 @@ module LoggedInRoom = {
       None;
     });
 
-    let trackState = Belt.Option.flatMap(room, room => room.trackState);
+    let trackState = Belt.Option.flatMap(room, room => room.track);
     React.useEffect2(
       () => {
         if (isSyncing) {
           switch (trackState) {
-          | Some((trackId, startTimestamp, _durationMs)) =>
+          | Some((roomTrack, startTimestamp)) =>
             let positionMs = Js.Date.now() -. startTimestamp;
-            SpotifyClient.playTrack(trackId, positionMs) |> ignore;
+            SpotifyClient.playTrack(roomTrack.trackId, positionMs) |> ignore;
           | None => ()
           };
         };

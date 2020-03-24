@@ -14,17 +14,29 @@ Socket.on(
       )
     | LostConnection(roomId, connectionId) =>
       RoomStore.removeConnection(roomId, connectionId)
-    | Connected(roomId, connections, serializedTrackState) =>
+    | Connected(roomId, connections, serializedTrack, startTimestamp) =>
+      let (trackId, _, _, _, _, _, _, _) = serializedTrack;
       RoomStore.updateRoom({
         id: roomId,
         connections:
           connections |> Js.Array.map(SocketMessage.deserializeConnection),
-        trackState:
-          SocketMessage.deserializeOptionTrackState(serializedTrackState),
+        track:
+          if (trackId == "") {
+            None;
+          } else {
+            Some((
+              SocketMessage.deserializeRoomTrack(serializedTrack),
+              startTimestamp,
+            ));
+          },
       });
       RoomStore.updateCurrentRoomId(Some(roomId));
-    | PublishTrackState(roomId, trackState) =>
-      RoomStore.updateTrackState(roomId, trackState)
+    | PublishTrackState(roomId, serializedTrack, startTimestamp) =>
+      RoomStore.updateTrack(
+        roomId,
+        SocketMessage.deserializeRoomTrack(serializedTrack),
+        startTimestamp,
+      )
     };
   },
 );
@@ -33,12 +45,13 @@ let connectToRoom = (roomId, sessionId) => {
   Socket.emit(socket, JoinRoom(roomId, sessionId));
 };
 
-let publishCurrentTrack = (trackId, startTimestamp, durationMs) => {
+let publishCurrentTrack = (sessionId, trackId, startTimestamp) => {
   Socket.emit(
     socket,
     PublishTrackState(
+      sessionId,
       RoomStore.getCurrentRoomId()->Belt.Option.getExn,
-      (trackId, startTimestamp, durationMs),
+      (trackId, startTimestamp),
     ),
   );
 };

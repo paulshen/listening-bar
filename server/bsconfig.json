@@ -21,7 +21,8 @@
     "bs-fetch",
     "reason-promise",
     "@ahrefs/bs-dotenv",
-    "bs-socket"
+    "bs-socket",
+    "@glennsl/bs-json"
   ],
   "warnings": {
     "error" : "+101"

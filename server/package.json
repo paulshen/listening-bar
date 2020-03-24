@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@ahrefs/bs-dotenv": "^2.0.0",
+    "@glennsl/bs-json": "^5.0.2",
     "body-parser": "^1.19.0",
     "bs-express": "^1.0.1",
     "bs-fetch": "^0.5.2",

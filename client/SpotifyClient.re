@@ -5,7 +5,7 @@ let rec getCurrentTrack = () => {
   | Some(accessToken) =>
     let%Repromise.Js response =
       Fetch.fetchWithInit(
-        "https://api.spotify.com/v1/me/player/currently-playing",
+        "https://api.spotify.com/v1/me/player",
         Fetch.RequestInit.make(
           ~method_=Get,
           ~headers=
@@ -72,13 +72,30 @@ let rec getCurrentTrack = () => {
                  ),
                ),
         };
+      let context: SpotifyTypes.context = {
+        let json =
+          Result.getExn(json)
+          ->Js.Json.decodeObject
+          ->Option.getExn
+          ->Js.Dict.unsafeGet("context");
+        Json.Decode.{
+          type_: json |> field("type", string),
+          id: {
+            let href = json |> field("href", string);
+            href
+            |> Js.String.substringToEnd(
+                 ~from=Js.String.lastIndexOf("/", href) + 1,
+               );
+          },
+        };
+      };
       let isPlaying =
         Result.getExn(json) |> Json.Decode.(field("is_playing", bool));
       let progressMs =
         Result.getExn(json)
         |> Json.Decode.(field("progress_ms", Json.Decode.float));
       let startTimestamp = Js.Date.now() -. progressMs;
-      Promise.resolved(Some((track, isPlaying, startTimestamp)));
+      Promise.resolved(Some((track, context, isPlaying, startTimestamp)));
     | _ =>
       Js.log(response);
       Promise.resolved(None);

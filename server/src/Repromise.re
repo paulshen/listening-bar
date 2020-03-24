@@ -10,3 +10,10 @@ module Js = {
     Promise.flatMap(promise, cb);
   };
 };
+
+module JsExn = {
+  let let_ = (bsPromise, cb) => {
+    let promise = bsPromise->Promise.Js.fromBsPromise->Promise.Js.toResult;
+    Promise.flatMap(promise, result => cb(Belt.Result.getExn(result)));
+  };
+};

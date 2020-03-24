@@ -9,8 +9,8 @@ type albumImage = {
 };
 type album = {
   id: string,
-  images: array(albumImage),
   name: string,
+  images: array(albumImage),
 };
 type track = {
   id: string,
@@ -19,4 +19,9 @@ type track = {
   durationMs: float,
   album,
   artists: array(artist),
+};
+
+type context = {
+  type_: string,
+  id: string,
 };

@@ -67,7 +67,9 @@ let getUser = (userId: string): option(User.t) => {
 };
 
 let updateRoom = (room: Room.t) => {
-  LowDb.(db->get("rooms")->set(room.id, {"trackState": room.track})->write);
+  LowDb.(
+    db->get("rooms")->set(room.id, {"playlist": room.playlist})->write
+  );
 };
 
 let getRoom = (roomId: string): option(Room.t) => {

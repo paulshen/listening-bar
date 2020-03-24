@@ -3,11 +3,14 @@ type playerState =
   | Playing(float);
 
 type state = {
-  currentTrack: option(SpotifyTypes.track),
+  currentTrack: option((SpotifyTypes.track, SpotifyTypes.context)),
   playerState,
 };
 type action =
-  | UpdateState(option(SpotifyTypes.track), playerState);
+  | UpdateState(
+      option((SpotifyTypes.track, SpotifyTypes.context)),
+      playerState,
+    );
 
 let api =
   Restorative.createStore(

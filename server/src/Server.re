@@ -229,7 +229,7 @@ SocketServer.onConnect(
           let room =
             Option.getWithDefault(
               rooms->Js.Dict.get(roomId),
-              {id: roomId, connections: [||], track: None},
+              {id: roomId, connections: [||], playlist: None},
             );
           let updatedRoom =
             if (room.connections
@@ -251,11 +251,11 @@ SocketServer.onConnect(
               roomId,
               updatedRoom.connections
               |> Js.Array.map(SocketMessage.serializeConnection),
-              switch (updatedRoom.track) {
-              | None => ("", "", "", "", "", "", "", 0.)
-              | Some((serializedTrack, _)) => serializedTrack
+              switch (updatedRoom.playlist) {
+              | None => [||]
+              | Some((serializedTracks, _)) => serializedTracks
               },
-              switch (updatedRoom.track) {
+              switch (updatedRoom.playlist) {
               | None => 0.
               | Some((_, startTimestamp)) => startTimestamp
               },
@@ -266,7 +266,7 @@ SocketServer.onConnect(
           (
             switch (roomIdRef^) {
             | Some(storedRoomId) =>
-              let (trackId, startTimestamp) = trackState;
+              let (trackId, contextType, contextId, startTimestamp) = trackState;
               let%Repromise accessToken =
                 Persist.getSession(sessionId)
                 ->Option.map(session =>
@@ -275,17 +275,39 @@ SocketServer.onConnect(
                 ->Option.getWithDefault(Promise.resolved(None));
               switch (accessToken) {
               | Some(accessToken) =>
-                let%Repromise track =
-                  Spotify.getTrackInfo(~accessToken, ~trackId);
-                let serializedRoomTrack =
-                  SocketMessage.serializeSpotifyTrack(track);
+                let%Repromise contextTracks =
+                  Spotify.getContextTracks(
+                    ~accessToken,
+                    ~contextType,
+                    ~contextId,
+                  );
+
+                let%Repromise tracks =
+                  switch (
+                    contextTracks
+                    |> Js.Array.findIndex((track: SpotifyTypes.track) =>
+                         track.id == trackId
+                       )
+                  ) {
+                  | (-1) =>
+                    let%Repromise trackInfo =
+                      Spotify.getTrackInfo(~accessToken, ~trackId);
+                    Promise.resolved([|trackInfo|]);
+                  | trackOffset =>
+                    contextTracks
+                    |> Js.Array.sliceFrom(trackOffset)
+                    |> Promise.resolved
+                  };
+
+                let serializedRoomTracks =
+                  tracks |> Js.Array.map(SocketMessage.serializeSpotifyTrack);
 
                 // TODO: check roomId == storedRoomId
                 switch (Js.Dict.get(rooms, roomId)) {
                 | Some(room) =>
                   let updatedRoom = {
                     ...room,
-                    track: Some((serializedRoomTrack, startTimestamp)),
+                    playlist: Some((serializedRoomTracks, startTimestamp)),
                   };
                   rooms->Js.Dict.set(roomId, updatedRoom);
                   Persist.updateRoom(updatedRoom);
@@ -295,9 +317,9 @@ SocketServer.onConnect(
                 io
                 ->inRoom(roomId)
                 ->Socket.emit(
-                    PublishTrackState(
+                    PublishPlaylist(
                       roomId,
-                      serializedRoomTrack,
+                      serializedRoomTracks,
                       startTimestamp,
                     ),
                   );

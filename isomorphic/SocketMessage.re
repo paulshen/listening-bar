@@ -1,4 +1,4 @@
-type trackState = (string, float);
+type trackState = (string, string, string, float);
 type connection = {
   id: string,
   userId: string,
@@ -27,8 +27,9 @@ type serializedRoomTrack = (
 let serializeOptionTrackState = trackState => {
   switch (trackState) {
   | Some(trackState) =>
-    let (trackId, startTimestamp) = trackState;
-    [|trackId, Js.Float.toString(startTimestamp)|] |> Js.Array.joinWith(":");
+    let (trackId, contextType, contextId, startTimestamp) = trackState;
+    [|trackId, contextType, contextId, Js.Float.toString(startTimestamp)|]
+    |> Js.Array.joinWith(":");
   | None => ""
   };
 };
@@ -38,7 +39,7 @@ let deserializeOptionTrackState = (input): option(trackState) => {
   | "" => None
   | input =>
     let pieces = input |> Js.String.split(":");
-    Some((pieces[0], Js.Float.fromString(pieces[1])));
+    Some((pieces[0], pieces[1], pieces[2], Js.Float.fromString(pieces[3])));
   };
 };
 
@@ -93,8 +94,13 @@ type clientToServer =
   | PublishTrackState(string, string, trackState)
   | Logout(string);
 type serverToClient =
-  | Connected(string, array((string, string)), serializedRoomTrack, float)
+  | Connected(
+      string,
+      array((string, string)),
+      array(serializedRoomTrack),
+      float,
+    )
   | NewConnection(string, (string, string))
   | LostConnection(string, string)
   | LogoutConnection(string, string)
-  | PublishTrackState(string, serializedRoomTrack, float);
+  | PublishPlaylist(string, array(serializedRoomTrack), float);

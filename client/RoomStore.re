@@ -1,7 +1,7 @@
 type room = {
   id: string,
   connections: array(SocketMessage.connection),
-  track: option((SocketMessage.roomTrack, float)),
+  playlist: option((array(SocketMessage.roomTrack), float)),
 };
 
 type state = {
@@ -13,7 +13,7 @@ type action =
   | RemoveConnection(string, string)
   | LogoutConnection(string, string)
   | UpdateRoom(room)
-  | UpdateTrack(string, SocketMessage.roomTrack, float)
+  | UpdatePlaylist(string, array(SocketMessage.roomTrack), float)
   | UpdateRoomId(option(string));
 
 let api =
@@ -75,13 +75,13 @@ let api =
       let clone = Js.Dict.fromArray(Js.Dict.entries(state.rooms));
       clone->Js.Dict.set(room.id, room);
       {...state, rooms: clone};
-    | UpdateTrack(roomId, roomTrack, startTimestamp) =>
+    | UpdatePlaylist(roomId, roomTracks, startTimestamp) =>
       switch (Js.Dict.get(state.rooms, roomId)) {
       | Some((room: room)) =>
         let clone = Js.Dict.fromArray(Js.Dict.entries(state.rooms));
         clone->Js.Dict.set(
           roomId,
-          {...room, track: Some((roomTrack, startTimestamp))},
+          {...room, playlist: Some((roomTracks, startTimestamp))},
         );
         {...state, rooms: clone};
       | None => state
@@ -96,8 +96,8 @@ let getCurrentRoomId = () => api.getState().currentRoomId;
 
 let updateCurrentRoomId = roomId => api.dispatch(UpdateRoomId(roomId));
 let updateRoom = (room: room) => api.dispatch(UpdateRoom(room));
-let updateTrack = (roomId, roomTrack, startTimestamp) =>
-  api.dispatch(UpdateTrack(roomId, roomTrack, startTimestamp));
+let updatePlaylist = (roomId, roomTracks, startTimestamp) =>
+  api.dispatch(UpdatePlaylist(roomId, roomTracks, startTimestamp));
 let addConnection = (roomId, connection) =>
   api.dispatch(AddConnection(roomId, connection));
 let removeConnection = (roomId, connectionId) =>

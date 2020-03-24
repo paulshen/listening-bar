@@ -23,27 +23,28 @@ let getSocket = () => {
           RoomStore.removeConnection(roomId, connectionId)
         | LogoutConnection(roomId, connectionId) =>
           RoomStore.logoutConnection(roomId, connectionId)
-        | Connected(roomId, connections, serializedTrack, startTimestamp) =>
-          let (trackId, _, _, _, _, _, _, _) = serializedTrack;
+        | Connected(roomId, connections, serializedTracks, startTimestamp) =>
           RoomStore.updateRoom({
             id: roomId,
             connections:
               connections |> Js.Array.map(SocketMessage.deserializeConnection),
-            track:
-              if (trackId == "") {
+            playlist:
+              if (serializedTracks == [||]) {
                 None;
               } else {
                 Some((
-                  SocketMessage.deserializeRoomTrack(serializedTrack),
+                  serializedTracks
+                  |> Js.Array.map(SocketMessage.deserializeRoomTrack),
                   startTimestamp,
                 ));
               },
           });
           RoomStore.updateCurrentRoomId(Some(roomId));
-        | PublishTrackState(roomId, serializedTrack, startTimestamp) =>
-          RoomStore.updateTrack(
+        | PublishPlaylist(roomId, serializedTracks, startTimestamp) =>
+          RoomStore.updatePlaylist(
             roomId,
-            SocketMessage.deserializeRoomTrack(serializedTrack),
+            serializedTracks
+            |> Js.Array.map(SocketMessage.deserializeRoomTrack),
             startTimestamp,
           )
         };
@@ -61,13 +62,14 @@ let connectToRoom = (roomId, sessionId) => {
   );
 };
 
-let publishCurrentTrack = (sessionId, trackId, startTimestamp) => {
+let publishCurrentTrack =
+    (sessionId, trackId, contextType, contextId, startTimestamp) => {
   Socket.emit(
     getSocket(),
     PublishTrackState(
       sessionId,
       RoomStore.getCurrentRoomId()->Belt.Option.getExn,
-      (trackId, startTimestamp),
+      (trackId, contextType, contextId, startTimestamp),
     ),
   );
 };

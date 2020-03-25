@@ -132,13 +132,13 @@ let make = (~roomId: string) => {
                  {
                    let%Repromise currentTrack = SpotifyStore.fetchIfNeeded();
                    switch (currentTrack) {
-                   | Some((track, context, Playing(startTimestamp))) =>
+                   | Some((track, context, _)) =>
                      ClientSocket.publishCurrentTrack(
                        UserStore.getSessionId()->Belt.Option.getExn,
                        track.id,
                        context.type_,
                        context.id,
-                       startTimestamp,
+                       Js.Date.now(),
                      )
                    | _ => ()
                    };
@@ -146,7 +146,7 @@ let make = (~roomId: string) => {
                  }
                  |> ignore;
                }}>
-               {React.string("Publish Current Track")}
+               {React.string("Put on Record")}
              </button>
              <button
                onClick={_ => {ClientSocket.removeRecord(roomId) |> ignore}}>

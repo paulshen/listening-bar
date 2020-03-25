@@ -128,7 +128,13 @@ let make = (~roomId: string) => {
            <button onClick={_ => setIsSyncing(sync => !sync)}>
              {React.string(isSyncing ? "Stop Sync" : "Start Sync")}
            </button>
-           <button onClick={_ => publishCurrentTrack() |> ignore}>
+           <button
+             onClick={_ => {
+               if (!isSyncing) {
+                 setIsSyncing(_ => true);
+               };
+               publishCurrentTrack() |> ignore;
+             }}>
              {React.string("Publish Current Track")}
            </button>
          </div>

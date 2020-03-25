@@ -9,6 +9,7 @@ open Belt.Option;
       backgroundColor(hex("3E312B")),
       color(hex("f0f0f0")),
       fontFamily(`custom("Barlow Semi Condensed")),
+      margin(zero),
     ],
   );
   global("a", [color(hex("f0f0f0")), textDecoration(none)]);

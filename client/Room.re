@@ -1,3 +1,15 @@
+module Styles = {
+  open Css;
+  let root =
+    style([display(flexBox), justifyContent(center), paddingTop(px(64))]);
+  let paneSpacer =
+    style([
+      width(px(128)),
+      media("(min-width: 1200px)", [width(px(64))]),
+      media("(min-width: 1400px)", [width(px(128))]),
+    ]);
+};
+
 let publishCurrentTrack = () => {
   let%Repromise result = SpotifyClient.getCurrentTrack();
   switch (result) {
@@ -103,55 +115,60 @@ let make = (~roomId: string) => {
     (roomTrackId, isSyncing),
   );
 
-  <div>
-    <div> {React.string(roomId)} </div>
-    {switch (user) {
-     | Some(user) =>
-       <div>
-         <div> {React.string(user.id)} </div>
-         <button onClick={_ => setIsSyncing(sync => !sync)}>
-           {React.string(isSyncing ? "Stop Sync" : "Start Sync")}
-         </button>
-         <button onClick={_ => publishCurrentTrack() |> ignore}>
-           {React.string("Publish Current Track")}
-         </button>
-       </div>
-     | None =>
-       <div> <Link path="/login"> {React.string("Login")} </Link> </div>
-     }}
-    <RecordPlayer
-      playProgress={Belt.Option.map(roomTrackWithMetadata, _ => 0.3)}
-    />
-    {switch (roomTrackWithMetadata) {
-     | Some((roomTrack, index, startTimestamp)) =>
-       <CurrentRecord
-         roomPlaylist={Belt.Option.getExn(roomPlaylist)}
-         roomTrack
-         index
-         trackStartTimestamp=startTimestamp
-       />
-     | None => React.null
-     }}
-    {switch (room) {
-     | Some(room) =>
-       <div>
+  <div className=Styles.root>
+    <div>
+      <RecordPlayer
+        playProgress={Belt.Option.map(roomTrackWithMetadata, _ => 0.3)}
+      />
+      <div> {React.string(roomId)} </div>
+      {switch (user) {
+       | Some(user) =>
          <div>
-           {React.string(
-              string_of_int(Js.Array.length(room.connections))
-              ++ " connected",
-            )}
+           <div> {React.string(user.id)} </div>
+           <button onClick={_ => setIsSyncing(sync => !sync)}>
+             {React.string(isSyncing ? "Stop Sync" : "Start Sync")}
+           </button>
+           <button onClick={_ => publishCurrentTrack() |> ignore}>
+             {React.string("Publish Current Track")}
+           </button>
          </div>
+       | None =>
+         <div> <Link path="/login"> {React.string("Login")} </Link> </div>
+       }}
+      {switch (room) {
+       | Some(room) =>
          <div>
-           {room.connections
-            |> Js.Array.map((connection: SocketMessage.connection) =>
-                 <div key={connection.id}>
-                   {React.string(connection.userId)}
-                 </div>
-               )
-            |> React.array}
+           <div>
+             {React.string(
+                string_of_int(Js.Array.length(room.connections))
+                ++ " connected",
+              )}
+           </div>
+           <div>
+             {room.connections
+              |> Js.Array.map((connection: SocketMessage.connection) =>
+                   <div key={connection.id}>
+                     {React.string(connection.userId)}
+                   </div>
+                 )
+              |> React.array}
+           </div>
          </div>
-       </div>
-     | None => React.null
-     }}
+       | None => React.null
+       }}
+    </div>
+    <div className=Styles.paneSpacer />
+    <div>
+      {switch (roomTrackWithMetadata) {
+       | Some((roomTrack, index, startTimestamp)) =>
+         <CurrentRecord
+           roomPlaylist={Belt.Option.getExn(roomPlaylist)}
+           roomTrack
+           index
+           trackStartTimestamp=startTimestamp
+         />
+       | None => React.null
+       }}
+    </div>
   </div>;
 };

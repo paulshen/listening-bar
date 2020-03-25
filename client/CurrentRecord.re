@@ -1,9 +1,14 @@
 module Styles = {
   open Css;
-  let root = style([width(px(320))]);
+  let root = style([media("(min-width: 1200px)", [display(flexBox)])]);
   let albumImage = style([width(px(320)), height(px(320))]);
   let albumInfo =
-    style([textAlign(center), marginBottom(px(32)), marginTop(px(16))]);
+    style([
+      textAlign(center),
+      marginBottom(px(32)),
+      marginTop(px(32)),
+      width(px(320)),
+    ]);
   let currentSpinning =
     style([
       fontSize(px(10)),
@@ -14,6 +19,12 @@ module Styles = {
   let albumNameRow = style([marginBottom(px(4))]);
   let albumName = style([fontSize(px(24)), fontWeight(`num(500))]);
   let trackArtist = style([fontSize(px(18))]);
+  let playlist =
+    style([
+      width(px(320)),
+      media("(min-width: 1200px)", [marginLeft(px(64))]),
+      media("(min-width: 1400px)", [marginLeft(px(128))]),
+    ]);
 };
 
 module TrackRow = {
@@ -69,27 +80,31 @@ let make =
     ) => {
   let (playlistTracks, _) = roomPlaylist;
   <div className=Styles.root>
-    <div> <img src={roomTrack.albumImage} className=Styles.albumImage /> </div>
-    <div className=Styles.albumInfo>
-      <div className=Styles.currentSpinning>
-        {React.string("Currently Spinning")}
-      </div>
-      <div className=Styles.albumNameRow>
-        <a
-          href={"https://open.spotify.com/album/" ++ roomTrack.albumId}
-          className=Styles.albumName>
-          {React.string(roomTrack.albumName)}
-        </a>
-      </div>
+    <div>
       <div>
-        <a
-          href={"https://open.spotify.com/artist/" ++ roomTrack.artistId}
-          className=Styles.trackArtist>
-          {React.string(roomTrack.artistName)}
-        </a>
+        <img src={roomTrack.albumImage} className=Styles.albumImage />
+      </div>
+      <div className=Styles.albumInfo>
+        <div className=Styles.currentSpinning>
+          {React.string("Currently Spinning")}
+        </div>
+        <div className=Styles.albumNameRow>
+          <a
+            href={"https://open.spotify.com/album/" ++ roomTrack.albumId}
+            className=Styles.albumName>
+            {React.string(roomTrack.albumName)}
+          </a>
+        </div>
+        <div>
+          <a
+            href={"https://open.spotify.com/artist/" ++ roomTrack.artistId}
+            className=Styles.trackArtist>
+            {React.string(roomTrack.artistName)}
+          </a>
+        </div>
       </div>
     </div>
-    <div>
+    <div className=Styles.playlist>
       {playlistTracks
        |> Js.Array.mapi((track: SocketMessage.roomTrack, i) =>
             <TrackRow

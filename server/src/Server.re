@@ -338,6 +338,20 @@ SocketServer.onConnect(
             }
           )
           |> ignore
+        | RemoveRecord(roomId) =>
+          switch (roomIdRef^) {
+          | Some(roomId) =>
+            // TODO: check roomId == storedRoomId
+            switch (Js.Dict.get(rooms, roomId)) {
+            | Some(room) =>
+              let updatedRoom = {...room, playlist: None};
+              rooms->Js.Dict.set(roomId, updatedRoom);
+              Persist.updateRoom(updatedRoom);
+            | None => ()
+            };
+            io->inRoom(roomId)->Socket.emit(RemoveRecord(roomId));
+          | None => ()
+          }
         | Logout(roomId) =>
           switch (Js.Dict.get(rooms, roomId)) {
           | Some(room) =>

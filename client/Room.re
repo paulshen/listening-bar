@@ -150,6 +150,10 @@ let make = (~roomId: string) => {
              }}>
              {React.string("Publish Current Track")}
            </button>
+           <button
+             onClick={_ => {ClientSocket.removeRecord(roomId) |> ignore}}>
+             {React.string("Remove Record")}
+           </button>
          </div>
        | None =>
          <div> <Link path="/login"> {React.string("Login")} </Link> </div>

@@ -47,6 +47,7 @@ let getSocket = () => {
             |> Js.Array.map(SocketMessage.deserializeRoomTrack),
             startTimestamp,
           )
+        | RemoveRecord(roomId) => RoomStore.removeRecord(roomId)
         };
       },
     );
@@ -72,6 +73,10 @@ let publishCurrentTrack =
       (trackId, contextType, contextId, startTimestamp),
     ),
   );
+};
+
+let removeRecord = roomId => {
+  Socket.emit(getSocket(), RemoveRecord(roomId));
 };
 
 let logout = () => {

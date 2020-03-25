@@ -30,7 +30,8 @@
     "bs-socket",
     "bs-css-emotion",
     "bs-css",
-    "bs-react-spring"
+    "bs-react-spring",
+    "re-classnames"
   ],
   "refmt": 3,
   "ppx-flags": [

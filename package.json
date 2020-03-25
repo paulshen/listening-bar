@@ -27,6 +27,7 @@
     "bs-react-spring": "^0.4.0",
     "bs-socket": "^1.2.2",
     "bs-webapi": "^0.15.9",
+    "re-classnames": "^4.1.0",
     "react": "^16.8.1",
     "react-dom": "^16.8.1",
     "reason-promise": "^1.0.2",

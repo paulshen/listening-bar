@@ -123,11 +123,12 @@ let make = (~roomId: string) => {
       playProgress={Belt.Option.map(roomTrackWithMetadata, _ => 0.3)}
     />
     {switch (roomTrackWithMetadata) {
-     | Some((roomTrack, _, startTimestamp)) =>
-       <CurrentTrack
+     | Some((roomTrack, index, startTimestamp)) =>
+       <CurrentRecord
+         roomPlaylist={Belt.Option.getExn(roomPlaylist)}
          roomTrack
-         startTimestamp
-         key={roomTrack.trackId ++ Js.Float.toString(startTimestamp)}
+         index
+         trackStartTimestamp=startTimestamp
        />
      | None => React.null
      }}

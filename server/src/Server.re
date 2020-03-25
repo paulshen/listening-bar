@@ -282,7 +282,8 @@ SocketServer.onConnect(
                     ~contextId,
                   );
 
-                let%Repromise tracks =
+                let now = Js.Date.now();
+                let%Repromise (tracks, startTimestamp) =
                   switch (
                     contextTracks
                     |> Js.Array.findIndex((track: SpotifyTypes.track) =>
@@ -292,11 +293,18 @@ SocketServer.onConnect(
                   | (-1) =>
                     let%Repromise trackInfo =
                       Spotify.getTrackInfo(~accessToken, ~trackId);
-                    Promise.resolved([|trackInfo|]);
+                    Promise.resolved(([|trackInfo|], now));
                   | trackOffset =>
-                    contextTracks
-                    |> Js.Array.sliceFrom(trackOffset)
-                    |> Promise.resolved
+                    let beforeTrackDuration = ref(0.);
+                    for (i in 0 to trackOffset - 1) {
+                      beforeTrackDuration :=
+                        beforeTrackDuration^
+                        +. Option.getExn(contextTracks[i]).durationMs;
+                    };
+                    Promise.resolved((
+                      contextTracks,
+                      now -. beforeTrackDuration^,
+                    ));
                   };
 
                 let serializedRoomTracks =

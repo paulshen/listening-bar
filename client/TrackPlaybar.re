@@ -13,7 +13,7 @@ let displaySeconds = seconds => {
 };
 
 [@react.component]
-let make = (~startTimestamp: float, ~roomTrack: SocketMessage.roomTrack) => {
+let make = (~startTimestamp: float, ~track: SocketMessage.roomTrack) => {
   let (now, setNow) = React.useState(() => Js.Date.now());
   React.useEffect0(() => {
     let interval =
@@ -26,8 +26,6 @@ let make = (~startTimestamp: float, ~roomTrack: SocketMessage.roomTrack) => {
        displaySeconds(int_of_float((now -. startTimestamp) /. 1000.)),
      )}
     {React.string(" / ")}
-    {React.string(
-       displaySeconds(int_of_float(roomTrack.durationMs /. 1000.)),
-     )}
+    {React.string(displaySeconds(int_of_float(track.durationMs /. 1000.)))}
   </div>;
 };

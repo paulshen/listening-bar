@@ -10,6 +10,41 @@ module Styles = {
     ]);
 };
 
+let syncBuffer = 3000.;
+let syncInterval = 30000;
+
+let syncSpotify =
+    (~roomTrackWithMetadata: (SocketMessage.roomTrack, int, float), ~force) => {
+  let (track, index, startTimestamp) = roomTrackWithMetadata;
+  let%Repromise skipSyncing =
+    if (force) {
+      Promise.resolved(false);
+    } else {
+      let%Repromise spotifyState = SpotifyStore.fetch();
+      (
+        switch (spotifyState) {
+        | Some((localTrack, localContext, playerState)) =>
+          switch (playerState) {
+          | Playing(localStartTimestamp) =>
+            localTrack.id === track.trackId
+            && localContext.type_ === "album"
+            && localContext.id === track.albumId
+            && Js.Math.abs_float(localStartTimestamp -. startTimestamp)
+            < syncBuffer
+          | NotPlaying => false
+          }
+        | None => false
+        }
+      )
+      |> Promise.resolved;
+    };
+  if (!skipSyncing) {
+    let positionMs = Js.Date.now() -. startTimestamp;
+    SpotifyClient.playAlbum(track.albumId, index, positionMs) |> ignore;
+  };
+  Promise.resolved();
+};
+
 [@react.component]
 let make = (~roomId: string) => {
   let user = UserStore.useUser();
@@ -24,16 +59,6 @@ let make = (~roomId: string) => {
     ClientSocket.connectToRoom(roomId, UserStore.getSessionId());
     None;
   });
-
-  React.useEffect1(
-    () => {
-      if (isSyncing) {
-        SpotifyClient.turnOffRepeat() |> ignore;
-      };
-      None;
-    },
-    [|isSyncing|],
-  );
 
   let (_, forceUpdate) = React.useState(() => 1);
   let roomRecord = Belt.Option.flatMap(room, room => room.record);
@@ -51,24 +76,54 @@ let make = (~roomId: string) => {
         (tracks[trackIndex], trackIndex, trackStartTimestamp)
       })
     });
+  let roomTrackWithMetadataRef = React.useRef(roomTrackWithMetadata);
+  React.useEffect1(
+    () => {
+      React.Ref.setCurrent(roomTrackWithMetadataRef, roomTrackWithMetadata);
+      None;
+    },
+    [|roomTrackWithMetadata|],
+  );
   React.useEffect2(
-    () =>
+    () => {
       switch (roomRecord) {
-      | Some((albumId, _, _)) =>
-        let (_, index, startTimestamp) =
-          Belt.Option.getExn(roomTrackWithMetadata);
-        let positionMs = Js.Date.now() -. startTimestamp;
+      | Some(_) =>
         if (isSyncing) {
-          SpotifyClient.playAlbum(albumId, index, positionMs) |> ignore;
-        };
-        None;
+          syncSpotify(
+            ~roomTrackWithMetadata=Belt.Option.getExn(roomTrackWithMetadata),
+            ~force=true,
+          )
+          |> ignore;
+        }
       | None =>
         if (isSyncing) {
           SpotifyClient.pausePlayer() |> ignore;
-        };
+        }
+      };
+      None;
+    },
+    (roomRecord, isSyncing),
+  );
+  React.useEffect1(
+    () =>
+      if (isSyncing) {
+        SpotifyClient.turnOffRepeat() |> ignore;
+        let interval =
+          Js.Global.setInterval(
+            () => {
+              switch (React.Ref.current(roomTrackWithMetadataRef)) {
+              | Some(roomTrackWithMetadata) =>
+                syncSpotify(~roomTrackWithMetadata, ~force=false) |> ignore
+              | None => ()
+              }
+            },
+            syncInterval,
+          );
+        Some(() => {Js.Global.clearInterval(interval)});
+      } else {
         None;
       },
-    (roomRecord, isSyncing),
+    [|isSyncing|],
   );
 
   // TODO: move UI update into <CurrentRecord>
@@ -115,10 +170,46 @@ let make = (~roomId: string) => {
        | Some(user) =>
          <div>
            <div> {React.string(user.id)} </div>
+           {isSyncing
+              ? <div>
+                  <div>
+                    {React.string(
+                       "You are listening in this room. Your Spotify is synced.",
+                     )}
+                  </div>
+                  <div>
+                    {React.string(
+                       "If you leave this page, you will stop syncing.",
+                     )}
+                  </div>
+                  <button onClick={_ => setIsSyncing(_ => false)}>
+                    {React.string("Stop Sync")}
+                  </button>
+                </div>
+              : <div>
+                  <div>
+                    {React.string(
+                       "You are not syncing your Spotify to this room.",
+                     )}
+                  </div>
+                  <button onClick={_ => setIsSyncing(_ => true)}>
+                    {React.string("Start Sync")}
+                  </button>
+                </div>}
+           {switch (roomTrackWithMetadata) {
+            | Some(roomTrackWithMetadata) =>
+              <div>
+                <button
+                  onClick={_ => {
+                    syncSpotify(~roomTrackWithMetadata, ~force=false)
+                    |> ignore
+                  }}>
+                  {React.string("Manual Sync")}
+                </button>
+              </div>
+            | None => React.null
+            }}
            <div>
-             <button onClick={_ => setIsSyncing(sync => !sync)}>
-               {React.string(isSyncing ? "Stop Sync" : "Start Sync")}
-             </button>
              <button onClick={_ => {SpotifyStore.fetchIfNeeded() |> ignore}}>
                {React.string("Preview Current Track")}
              </button>

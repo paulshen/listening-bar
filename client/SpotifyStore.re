@@ -31,6 +31,19 @@ let useState = api.useStore;
 let updateState = (track, playerState, timestamp) =>
   api.dispatch(UpdateState(track, playerState, timestamp));
 
+let fetch = () => {
+  let%Repromise result = SpotifyClient.getCurrentTrack();
+  switch (result) {
+  | Some((track, context, isPlaying, startTimestamp)) =>
+    let playerState = isPlaying ? Playing(startTimestamp) : NotPlaying;
+    updateState(Some((track, context)), playerState, Js.Date.now());
+    Promise.resolved(Some((track, context, playerState)));
+  | None =>
+    updateState(None, NotPlaying, Js.Date.now());
+    Promise.resolved(None);
+  };
+};
+
 let fetchIfNeeded = () => {
   let {currentTrack, playerState, updateTimestamp} = api.getState();
   let now = Js.Date.now();
@@ -40,15 +53,6 @@ let fetchIfNeeded = () => {
     })
     |> Promise.resolved;
   } else {
-    let%Repromise result = SpotifyClient.getCurrentTrack();
-    switch (result) {
-    | Some((track, context, isPlaying, startTimestamp)) =>
-      let playerState = isPlaying ? Playing(startTimestamp) : NotPlaying;
-      updateState(Some((track, context)), playerState, Js.Date.now());
-      Promise.resolved(Some((track, context, playerState)));
-    | None =>
-      updateState(None, NotPlaying, now);
-      Promise.resolved(None);
-    };
+    fetch();
   };
 };

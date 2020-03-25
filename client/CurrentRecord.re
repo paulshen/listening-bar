@@ -2,6 +2,7 @@ module Styles = {
   open Css;
   let root = style([media("(min-width: 1200px)", [display(flexBox)])]);
   let albumImage = style([width(px(320)), height(px(320))]);
+  let albumImagePlaceholder = style([backgroundColor(hex("6c564b"))]);
   let albumInfo =
     style([
       textAlign(center),
@@ -22,9 +23,11 @@ module Styles = {
   let playlist =
     style([
       width(px(320)),
+      fontSize(px(14)),
       media("(min-width: 1200px)", [marginLeft(px(64))]),
       media("(min-width: 1400px)", [marginLeft(px(128))]),
     ]);
+  let noRecordPlaylist = style([textAlign(center)]);
 };
 
 module TrackRow = {
@@ -73,53 +76,80 @@ module TrackRow = {
 [@react.component]
 let make =
     (
-      ~roomRecord: (string, array(SocketMessage.roomTrack), float),
-      ~roomTrack: SocketMessage.roomTrack,
-      ~index: int,
-      ~trackStartTimestamp: float,
+      ~roomTrackWithMetadata: option((SocketMessage.roomTrack, int, float)),
+      ~roomRecord: option((string, array(SocketMessage.roomTrack), float)),
+      ~isLoggedIn: bool,
     ) => {
-  let (_albumId, playlistTracks, _) = roomRecord;
-  <div className=Styles.root>
-    <div>
+  switch (roomTrackWithMetadata) {
+  | Some((roomTrack, index, trackStartTimestamp)) =>
+    let (_albumId, playlistTracks, _) = Belt.Option.getExn(roomRecord);
+    <div className=Styles.root>
       <div>
-        <img src={roomTrack.albumImage} className=Styles.albumImage />
-      </div>
-      <div className=Styles.albumInfo>
-        <div className=Styles.currentSpinning>
-          {React.string("Currently Spinning")}
-        </div>
-        <div className=Styles.albumNameRow>
-          <a
-            href={"https://open.spotify.com/album/" ++ roomTrack.albumId}
-            className=Styles.albumName>
-            {React.string(roomTrack.albumName)}
-          </a>
-        </div>
         <div>
-          <a
-            href={"https://open.spotify.com/artist/" ++ roomTrack.artistId}
-            className=Styles.trackArtist>
-            {React.string(roomTrack.artistName)}
-          </a>
+          <img src={roomTrack.albumImage} className=Styles.albumImage />
+        </div>
+        <div className=Styles.albumInfo>
+          <div className=Styles.currentSpinning>
+            {React.string("Currently Spinning")}
+          </div>
+          <div className=Styles.albumNameRow>
+            <a
+              href={"https://open.spotify.com/album/" ++ roomTrack.albumId}
+              className=Styles.albumName>
+              {React.string(roomTrack.albumName)}
+            </a>
+          </div>
+          <div>
+            <a
+              href={"https://open.spotify.com/artist/" ++ roomTrack.artistId}
+              className=Styles.trackArtist>
+              {React.string(roomTrack.artistName)}
+            </a>
+          </div>
+        </div>
+      </div>
+      <div className=Styles.playlist>
+        {playlistTracks
+         |> Js.Array.mapi((track: SocketMessage.roomTrack, i) =>
+              <TrackRow
+                track
+                startTimestamp={
+                                 if (i == index) {
+                                   Some(trackStartTimestamp);
+                                 } else {
+                                   None;
+                                 }
+                               }
+                key={track.trackId}
+              />
+            )
+         |> React.array}
+      </div>
+    </div>;
+  | None =>
+    <div className=Styles.root>
+      <div>
+        <div
+          className={Cn.make([
+            Styles.albumImage,
+            Styles.albumImagePlaceholder,
+          ])}
+        />
+        <div className=Styles.albumInfo>
+          <div className=Styles.currentSpinning>
+            {React.string("Currently Quiet")}
+          </div>
+        </div>
+      </div>
+      <div className=Styles.playlist>
+        <div className=Styles.noRecordPlaylist>
+          {React.string(
+             isLoggedIn
+               ? "Play an album on Spotify and press Put On Record"
+               : "Login to play a record",
+           )}
         </div>
       </div>
     </div>
-    <div className=Styles.playlist>
-      {playlistTracks
-       |> Js.Array.mapi((track: SocketMessage.roomTrack, i) =>
-            <TrackRow
-              track
-              startTimestamp={
-                               if (i == index) {
-                                 Some(trackStartTimestamp);
-                               } else {
-                                 None;
-                               }
-                             }
-              key={track.trackId}
-            />
-          )
-       |> React.array}
-    </div>
-  </div>;
+  };
 };

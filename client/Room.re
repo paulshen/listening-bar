@@ -182,16 +182,11 @@ let make = (~roomId: string) => {
     </div>
     <div className=Styles.paneSpacer />
     <div>
-      {switch (roomTrackWithMetadata) {
-       | Some((roomTrack, index, startTimestamp)) =>
-         <CurrentRecord
-           roomRecord={Belt.Option.getExn(roomRecord)}
-           roomTrack
-           index
-           trackStartTimestamp=startTimestamp
-         />
-       | None => React.null
-       }}
+      <CurrentRecord
+        roomTrackWithMetadata
+        roomRecord
+        isLoggedIn={Belt.Option.isSome(user)}
+      />
     </div>
   </div>;
 };

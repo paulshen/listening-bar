@@ -20,7 +20,7 @@ module Styles = {
     style([
       unsafe(
         "background",
-        "#1e1e1e linear-gradient(140deg, rgba(255,255,255,0) 40%, rgba(255,255,255,0.20) 50%, rgba(255,255,255,0) 60%);",
+        "#1e1e1e linear-gradient(135deg, rgba(255,255,255,0) 40%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0) 60%);",
       ),
       borderRadius(pct(50.)),
       position(absolute),

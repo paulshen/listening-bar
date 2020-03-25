@@ -25,9 +25,12 @@ let make = () => {
     },
     [|url|],
   );
-  switch (url.path) {
-  | ["login"] => <div> <Login /> </div>
-  | ["room", roomId] => <Room roomId />
-  | _ => React.null
-  };
+  <div>
+    {switch (url.path) {
+     | ["login"] => <div> <Login /> </div>
+     | ["room", roomId] => <Room roomId />
+     | _ => React.null
+     }}
+    <ReactAtmosphere.LayerContainer />
+  </div>;
 };

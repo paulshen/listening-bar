@@ -45,6 +45,106 @@ let syncSpotify =
   Promise.resolved();
 };
 
+module SpotifyStatePreview = {
+  module Styles = {
+    open Css;
+    let root =
+      style([
+        backgroundColor(rgba(0, 0, 0, 0.9)),
+        display(flexBox),
+        fontSize(px(14)),
+        padding(px(16)),
+        boxSizing(borderBox),
+        width(px(288)),
+      ]);
+    let spacer = style([width(px(24))]);
+    let albumImage = style([width(px(96)), height(px(96))]);
+    let albumName = style([fontWeight(`num(600))]);
+  };
+
+  [@react.component]
+  let make = () => {
+    let {currentTrack}: SpotifyStore.state = SpotifyStore.useState();
+    switch (currentTrack) {
+    | Some((track, context)) =>
+      <div className=Styles.root>
+        <img src={track.album.images[0].url} className=Styles.albumImage />
+        <div className=Styles.spacer />
+        <div>
+          <div className=Styles.albumName>
+            {React.string(track.album.name)}
+          </div>
+          <div> {React.string(track.artists[0].name)} </div>
+          <div> {React.string(track.name)} </div>
+        </div>
+      </div>
+    | None =>
+      <div className=Styles.root>
+        {React.string("First play a song on Spotify")}
+      </div>
+    };
+  };
+};
+
+module ControlButtons = {
+  [@react.component]
+  let make = (~hasRecordPlaying) => {
+    let buttonRef = React.useRef(Js.Nullable.null);
+    let (showPreview, setShowPreview) = React.useState(() => false);
+    let onMouseEnter = _ => {
+      SpotifyStore.fetchIfNeeded(~bufferMs=10000) |> ignore;
+      setShowPreview(_ => true);
+    };
+    let onMouseLeave = _ => setShowPreview(_ => false);
+    <div>
+      <button
+        onClick={_ => {
+          {
+            let%Repromise currentTrack =
+              SpotifyStore.fetchIfNeeded(~bufferMs=10000);
+            switch (currentTrack) {
+            | Some((track, _context, _)) =>
+              ClientSocket.publishCurrentTrack(
+                UserStore.getSessionId()->Belt.Option.getExn,
+                track.id,
+                // always publish track's album
+                "album",
+                track.album.id,
+                Js.Date.now(),
+              )
+            | _ => ()
+            };
+            Promise.resolved();
+          }
+          |> ignore
+        }}
+        onMouseEnter
+        onMouseLeave
+        ref={ReactDOMRe.Ref.domRef(buttonRef)}>
+        {React.string(hasRecordPlaying ? "Change Record" : "Put on Record")}
+      </button>
+      {showPreview
+         ? <ReactAtmosphere.PopperLayer
+             reference=buttonRef
+             render={_ => <SpotifyStatePreview />}
+             options={
+               placement: Some("top-start"),
+               modifiers:
+                 Some([|
+                   {
+                     "name": "offset",
+                     "options": {
+                       "offset": [|(-16), 8|],
+                     },
+                   },
+                 |]),
+             }
+           />
+         : React.null}
+    </div>;
+  };
+};
+
 [@react.component]
 let make = (~roomId: string) => {
   let user = UserStore.useUser();
@@ -209,40 +309,19 @@ let make = (~roomId: string) => {
               </div>
             | None => React.null
             }}
-           <div>
-             <button onClick={_ => {SpotifyStore.fetchIfNeeded() |> ignore}}>
-               {React.string("Preview Current Track")}
-             </button>
-           </div>
-           <div>
-             <button
-               onClick={_ => {
-                 {
-                   let%Repromise currentTrack = SpotifyStore.fetchIfNeeded();
-                   switch (currentTrack) {
-                   | Some((track, _context, _)) =>
-                     ClientSocket.publishCurrentTrack(
-                       UserStore.getSessionId()->Belt.Option.getExn,
-                       track.id,
-                       // always publish track's album
-                       "album",
-                       track.album.id,
-                       Js.Date.now(),
-                     )
-                   | _ => ()
-                   };
-                   Promise.resolved();
-                 }
-                 |> ignore
-               }}>
-               {React.string("Put on Record")}
-             </button>
-             <button
-               onClick={_ => {ClientSocket.removeRecord(roomId) |> ignore}}>
-               {React.string("Remove Record")}
-             </button>
-           </div>
-           <div> <LocalPlayerState /> </div>
+           <ControlButtons
+             hasRecordPlaying={Belt.Option.isSome(roomTrackWithMetadata)}
+           />
+           {if (Belt.Option.isSome(roomRecord)) {
+              <div>
+                <button
+                  onClick={_ => {ClientSocket.removeRecord(roomId) |> ignore}}>
+                  {React.string("Remove Record")}
+                </button>
+              </div>;
+            } else {
+              React.null;
+            }}
          </div>
        | None =>
          <div> <Link path="/login"> {React.string("Login")} </Link> </div>

@@ -44,10 +44,10 @@ let fetch = () => {
   };
 };
 
-let fetchIfNeeded = () => {
+let fetchIfNeeded = (~bufferMs) => {
   let {currentTrack, playerState, updateTimestamp} = api.getState();
   let now = Js.Date.now();
-  if (now -. updateTimestamp < 5000.) {
+  if (now -. updateTimestamp < float_of_int(bufferMs)) {
     Belt.Option.map(currentTrack, ((track, context)) => {
       (track, context, playerState)
     })

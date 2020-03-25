@@ -31,7 +31,8 @@
     "bs-css-emotion",
     "bs-css",
     "bs-react-spring",
-    "re-classnames"
+    "re-classnames",
+    "bs-react-atmosphere"
   ],
   "refmt": 3,
   "ppx-flags": [

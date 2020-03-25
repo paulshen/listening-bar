@@ -29,7 +29,8 @@
     "@glennsl/bs-json",
     "bs-socket",
     "bs-css-emotion",
-    "bs-css"
+    "bs-css",
+    "bs-react-spring"
   ],
   "refmt": 3,
   "ppx-flags": [

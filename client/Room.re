@@ -119,7 +119,9 @@ let make = (~roomId: string) => {
      | None =>
        <div> <Link path="/login"> {React.string("Login")} </Link> </div>
      }}
-    <RecordPlayer playProgress=None />
+    <RecordPlayer
+      playProgress={Belt.Option.map(roomTrackWithMetadata, _ => 0.3)}
+    />
     {switch (roomTrackWithMetadata) {
      | Some((roomTrack, _, startTimestamp)) =>
        <CurrentTrack

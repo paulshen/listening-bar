@@ -89,6 +89,26 @@ let deserializeConnection = ((id, userId)) => {
   {id, userId};
 };
 
+let getCurrentTrack =
+    (trackDurations: array(float), startTimestamp: float)
+    : option((int, float)) => {
+  let result = ref(None);
+  let i = ref(0);
+  let now = Js.Date.now();
+  let timestamp = ref(startTimestamp);
+  while (Belt.Option.isNone(result^) && i^ < Js.Array.length(trackDurations)) {
+    let durationMs = trackDurations[i^];
+    let songEnd = timestamp^ +. durationMs;
+    if (now < songEnd) {
+      result := Some((i^, timestamp^));
+    } else {
+      i := i^ + 1;
+      timestamp := songEnd;
+    };
+  };
+  result^;
+};
+
 type clientToServer =
   | JoinRoom(string, string)
   | PublishTrackState(string, string, trackState)

@@ -59,28 +59,20 @@ let make = (~roomId: string) => {
 
   let (_, forceUpdate) = React.useState(() => 1);
   let roomRecord = Belt.Option.flatMap(room, room => room.record);
-  let now = Js.Date.now();
   let roomTrackWithMetadata =
-    Belt.Option.flatMap(
-      roomRecord,
-      ((_albumId, tracks, startTimestamp)) => {
-        let result = ref(None);
-        let i = ref(0);
-        let timestamp = ref(startTimestamp);
-        while (Belt.Option.isNone(result^) && i^ < Js.Array.length(tracks)) {
-          let track = tracks[i^];
-          let durationMs = track.durationMs;
-          let songEnd = timestamp^ +. durationMs;
-          if (now < songEnd) {
-            result := Some((track, i^, timestamp^));
-          } else {
-            i := i^ + 1;
-            timestamp := songEnd;
-          };
-        };
-        result^;
-      },
-    );
+    Belt.Option.flatMap(roomRecord, ((_albumId, tracks, startTimestamp)) => {
+      Belt.Option.map(
+        SocketMessage.getCurrentTrack(
+          tracks
+          |> Js.Array.map((track: SocketMessage.roomTrack) =>
+               track.durationMs
+             ),
+          startTimestamp,
+        ),
+        ((trackIndex, trackStartTimestamp)) => {
+        (tracks[trackIndex], trackIndex, trackStartTimestamp)
+      })
+    });
   React.useEffect2(
     () =>
       switch (roomRecord) {
@@ -110,18 +102,13 @@ let make = (~roomId: string) => {
       | Some(_) =>
         let (roomTrack, index, startTimestamp) =
           Belt.Option.getExn(roomTrackWithMetadata);
-        let (_, tracks, _) = Belt.Option.getExn(roomRecord);
-        if (index < Js.Array.length(tracks) - 1) {
-          let songEnd = startTimestamp +. roomTrack.durationMs;
-          let timeout =
-            Js.Global.setTimeoutFloat(
-              () => {forceUpdate(x => x + 1)},
-              songEnd -. Js.Date.now(),
-            );
-          Some(() => Js.Global.clearTimeout(timeout));
-        } else {
-          None;
-        };
+        let songEnd = startTimestamp +. roomTrack.durationMs;
+        let timeout =
+          Js.Global.setTimeoutFloat(
+            () => {forceUpdate(x => x + 1)},
+            songEnd -. Js.Date.now(),
+          );
+        Some(() => Js.Global.clearTimeout(timeout));
       | None => None
       },
     [|roomTrackId|],

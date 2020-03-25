@@ -231,19 +231,42 @@ SocketServer.onConnect(
               rooms->Js.Dict.get(roomId),
               {id: roomId, connections: [||], record: None},
             );
+          let hasRecordEnded =
+            switch (room.record) {
+            | Some((_albumId, serializedTracks, startTimestamp)) =>
+              let currentTrack =
+                SocketMessage.getCurrentTrack(
+                  serializedTracks
+                  |> Js.Array.map(
+                       (
+                         (_, _, _, _, _, _, _, duration): SocketMessage.serializedRoomTrack,
+                       ) =>
+                       duration
+                     ),
+                  startTimestamp,
+                );
+              Belt.Option.isNone(currentTrack);
+            | None => false
+            };
           let updatedRoom =
-            if (room.connections
+            if (hasRecordEnded) {
+              {...room, record: None};
+            } else {
+              room;
+            };
+          let updatedRoom =
+            if (updatedRoom.connections
                 |> Js.Array.findIndex((connection: SocketMessage.connection) =>
                      connection.id == socketId
                    )
                 == (-1)) {
               {
-                ...room,
+                ...updatedRoom,
                 connections:
-                  room.connections |> Js.Array.concat([|connection|]),
+                  updatedRoom.connections |> Js.Array.concat([|connection|]),
               };
             } else {
-              room;
+              updatedRoom;
             };
           rooms->Js.Dict.set(roomId, updatedRoom);
           socket->Socket.emit(

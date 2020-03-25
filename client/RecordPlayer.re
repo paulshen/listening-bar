@@ -124,7 +124,16 @@ external interpolate2: (('a, 'b), ('a, 'b) => string) => string =
   "interpolate";
 
 [@react.component]
-let make = (~playProgress) => {
+let make = (~startTimestamp: option(float), ~totalDuration: option(float)) => {
+  let (_, forceUpdate) = React.useState(() => 1);
+  let playProgress =
+    switch (startTimestamp, totalDuration) {
+    | (Some(startTimestamp), Some(totalDuration)) =>
+      let now = Js.Date.now();
+      Some((now -. startTimestamp) /. totalDuration);
+    | _ => None
+    };
+
   let (progressSpring, setProgressSpring) =
     SpringHook.use(
       ~config=Spring.config(~mass=1., ~tension=80., ~friction=20.),
@@ -146,7 +155,7 @@ let make = (~playProgress) => {
     () =>
       if (isPlaying) {
         let x = ref(true);
-        let interval =
+        let jitterInterval =
           Js.Global.setInterval(
             () => {
               setPlayJitter(x^ ? 1 : 0);
@@ -155,7 +164,14 @@ let make = (~playProgress) => {
             },
             800,
           );
-        Some(() => {Js.Global.clearInterval(interval)});
+        let playInterval =
+          Js.Global.setInterval(() => {forceUpdate(x => x + 1)}, 10000);
+        Some(
+          () => {
+            Js.Global.clearInterval(jitterInterval);
+            Js.Global.clearInterval(playInterval);
+          },
+        );
       } else {
         None;
       },

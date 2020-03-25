@@ -118,7 +118,20 @@ let make = (~roomId: string) => {
   <div className=Styles.root>
     <div>
       <RecordPlayer
-        playProgress={Belt.Option.map(roomTrackWithMetadata, _ => 0.3)}
+        startTimestamp={Belt.Option.map(roomPlaylist, ((_, startTimestamp)) =>
+          startTimestamp
+        )}
+        totalDuration={Belt.Option.map(
+          roomPlaylist,
+          ((tracks, _)) => {
+            let duration = ref(0.);
+            tracks
+            |> Js.Array.forEach((track: SocketMessage.roomTrack) => {
+                 duration := duration^ +. track.durationMs
+               });
+            duration^;
+          },
+        )}
       />
       <div> {React.string(roomId)} </div>
       {switch (user) {

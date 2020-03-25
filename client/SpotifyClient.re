@@ -32,6 +32,7 @@ let rec getCurrentTrack = () => {
         Json.Decode.{
           id: item |> field("id", string),
           name: item |> field("name", string),
+          trackNumber: item |> field("track_number", int),
           durationMs: item |> field("duration_ms", Json.Decode.float),
           uri: item |> field("uri", string),
           album:

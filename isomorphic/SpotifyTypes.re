@@ -15,6 +15,7 @@ type album = {
 type track = {
   id: string,
   name: string,
+  trackNumber: int,
   uri: string,
   durationMs: float,
   album,

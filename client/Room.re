@@ -10,28 +10,6 @@ module Styles = {
     ]);
 };
 
-let publishCurrentTrack = () => {
-  let%Repromise result = SpotifyClient.getCurrentTrack();
-  switch (result) {
-  | Some((track, context, isPlaying, startTimestamp)) =>
-    SpotifyStore.updateState(
-      Some((track, context)),
-      isPlaying ? Playing(startTimestamp) : NotPlaying,
-    );
-    if (isPlaying) {
-      ClientSocket.publishCurrentTrack(
-        UserStore.getSessionId()->Belt.Option.getExn,
-        track.id,
-        context.type_,
-        context.id,
-        startTimestamp,
-      );
-    };
-  | None => ()
-  };
-  Promise.resolved();
-};
-
 [@react.component]
 let make = (~roomId: string) => {
   let user = UserStore.useUser();
@@ -137,22 +115,45 @@ let make = (~roomId: string) => {
        | Some(user) =>
          <div>
            <div> {React.string(user.id)} </div>
-           <button onClick={_ => setIsSyncing(sync => !sync)}>
-             {React.string(isSyncing ? "Stop Sync" : "Start Sync")}
-           </button>
-           <button
-             onClick={_ => {
-               if (!isSyncing) {
-                 setIsSyncing(_ => true);
-               };
-               publishCurrentTrack() |> ignore;
-             }}>
-             {React.string("Publish Current Track")}
-           </button>
-           <button
-             onClick={_ => {ClientSocket.removeRecord(roomId) |> ignore}}>
-             {React.string("Remove Record")}
-           </button>
+           <div>
+             <button onClick={_ => setIsSyncing(sync => !sync)}>
+               {React.string(isSyncing ? "Stop Sync" : "Start Sync")}
+             </button>
+             <button onClick={_ => {SpotifyStore.fetchIfNeeded() |> ignore}}>
+               {React.string("Preview Current Track")}
+             </button>
+           </div>
+           <div>
+             <button
+               onClick={_ => {
+                 if (!isSyncing) {
+                   setIsSyncing(_ => true);
+                 };
+                 {
+                   let%Repromise currentTrack = SpotifyStore.fetchIfNeeded();
+                   switch (currentTrack) {
+                   | Some((track, context, Playing(startTimestamp))) =>
+                     ClientSocket.publishCurrentTrack(
+                       UserStore.getSessionId()->Belt.Option.getExn,
+                       track.id,
+                       context.type_,
+                       context.id,
+                       startTimestamp,
+                     )
+                   | _ => ()
+                   };
+                   Promise.resolved();
+                 }
+                 |> ignore;
+               }}>
+               {React.string("Publish Current Track")}
+             </button>
+             <button
+               onClick={_ => {ClientSocket.removeRecord(roomId) |> ignore}}>
+               {React.string("Remove Record")}
+             </button>
+           </div>
+           <div> <LocalPlayerState /> </div>
          </div>
        | None =>
          <div> <Link path="/login"> {React.string("Login")} </Link> </div>

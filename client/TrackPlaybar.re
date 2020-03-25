@@ -1,6 +1,6 @@
 module Styles = {
   open Css;
-  let root = style([fontSize(px(12))]);
+  let root = style([fontSize(px(12)), whiteSpace(nowrap)]);
 };
 
 let displaySeconds = seconds => {

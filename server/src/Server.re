@@ -229,7 +229,7 @@ SocketServer.onConnect(
           let room =
             Option.getWithDefault(
               rooms->Js.Dict.get(roomId),
-              {id: roomId, connections: [||], playlist: None},
+              {id: roomId, connections: [||], record: None},
             );
           let updatedRoom =
             if (room.connections
@@ -251,13 +251,17 @@ SocketServer.onConnect(
               roomId,
               updatedRoom.connections
               |> Js.Array.map(SocketMessage.serializeConnection),
-              switch (updatedRoom.playlist) {
-              | None => [||]
-              | Some((serializedTracks, _)) => serializedTracks
+              switch (updatedRoom.record) {
+              | None => ""
+              | Some((albumId, _, _)) => albumId
               },
-              switch (updatedRoom.playlist) {
+              switch (updatedRoom.record) {
+              | None => [||]
+              | Some((_, serializedTracks, _)) => serializedTracks
+              },
+              switch (updatedRoom.record) {
               | None => 0.
-              | Some((_, startTimestamp)) => startTimestamp
+              | Some((_, _, startTimestamp)) => startTimestamp
               },
             ),
           );
@@ -267,6 +271,7 @@ SocketServer.onConnect(
             switch (roomIdRef^) {
             | Some(storedRoomId) =>
               let (trackId, contextType, contextId, startTimestamp) = trackState;
+              let albumId = contextId;
               let%Repromise accessToken =
                 Persist.getSession(sessionId)
                 ->Option.map(session =>
@@ -315,7 +320,8 @@ SocketServer.onConnect(
                 | Some(room) =>
                   let updatedRoom = {
                     ...room,
-                    playlist: Some((serializedRoomTracks, startTimestamp)),
+                    record:
+                      Some((albumId, serializedRoomTracks, startTimestamp)),
                   };
                   rooms->Js.Dict.set(roomId, updatedRoom);
                   Persist.updateRoom(updatedRoom);
@@ -325,8 +331,9 @@ SocketServer.onConnect(
                 io
                 ->inRoom(roomId)
                 ->Socket.emit(
-                    PublishPlaylist(
+                    StartRecord(
                       roomId,
+                      albumId,
                       serializedRoomTracks,
                       startTimestamp,
                     ),
@@ -344,7 +351,7 @@ SocketServer.onConnect(
             // TODO: check roomId == storedRoomId
             switch (Js.Dict.get(rooms, roomId)) {
             | Some(room) =>
-              let updatedRoom = {...room, playlist: None};
+              let updatedRoom = {...room, record: None};
               rooms->Js.Dict.set(roomId, updatedRoom);
               Persist.updateRoom(updatedRoom);
             | None => ()

@@ -73,12 +73,12 @@ module TrackRow = {
 [@react.component]
 let make =
     (
-      ~roomPlaylist: (array(SocketMessage.roomTrack), float),
+      ~roomRecord: (string, array(SocketMessage.roomTrack), float),
       ~roomTrack: SocketMessage.roomTrack,
       ~index: int,
       ~trackStartTimestamp: float,
     ) => {
-  let (playlistTracks, _) = roomPlaylist;
+  let (_albumId, playlistTracks, _) = roomRecord;
   <div className=Styles.root>
     <div>
       <div>

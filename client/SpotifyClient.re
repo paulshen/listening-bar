@@ -104,7 +104,7 @@ let rec getCurrentTrack = () => {
   };
 };
 
-let playTrack = (trackId, positionMs) => {
+let playAlbum = (albumId, offset, positionMs) => {
   switch (Belt.Option.map(UserStore.getUser(), user => user.accessToken)) {
   | Some(accessToken) =>
     let%Repromise.Js response =
@@ -118,8 +118,19 @@ let playTrack = (trackId, positionMs) => {
                 Js.Json.object_(
                   Js.Dict.fromArray([|
                     (
-                      "uris",
-                      Js.Json.stringArray([|{j|spotify:track:$trackId|j}|]),
+                      "context_uri",
+                      Js.Json.string({j|spotify:album:$albumId|j}),
+                    ),
+                    (
+                      "offset",
+                      Js.Json.object_(
+                        Js.Dict.fromArray([|
+                          (
+                            "position",
+                            Js.Json.number(float_of_int(offset)),
+                          ),
+                        |]),
+                      ),
                     ),
                     ("position_ms", Js.Json.number(positionMs)),
                   |]),

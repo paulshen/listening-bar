@@ -58,12 +58,12 @@ let make = (~roomId: string) => {
   );
 
   let (_, forceUpdate) = React.useState(() => 1);
-  let roomPlaylist = Belt.Option.flatMap(room, room => room.playlist);
+  let roomRecord = Belt.Option.flatMap(room, room => room.record);
   let now = Js.Date.now();
   let roomTrackWithMetadata =
     Belt.Option.flatMap(
-      roomPlaylist,
-      ((tracks, startTimestamp)) => {
+      roomRecord,
+      ((_albumId, tracks, startTimestamp)) => {
         let result = ref(None);
         let i = ref(0);
         let timestamp = ref(startTimestamp);
@@ -81,21 +81,37 @@ let make = (~roomId: string) => {
         result^;
       },
     );
-  let roomTrackId =
-    Belt.Option.map(roomTrackWithMetadata, ((track, _, _)) => track.trackId);
   React.useEffect2(
     () =>
-      switch (roomTrackId) {
-      | Some(roomTrackId) =>
-        let (roomTrack, index, startTimestamp) =
+      switch (roomRecord) {
+      | Some((albumId, _, _)) =>
+        let (_, index, startTimestamp) =
           Belt.Option.getExn(roomTrackWithMetadata);
         let positionMs = Js.Date.now() -. startTimestamp;
-        // TODO
         if (isSyncing) {
-          SpotifyClient.playTrack(roomTrackId, positionMs) |> ignore;
+          SpotifyClient.playAlbum(albumId, index, positionMs) |> ignore;
         };
-        if (index < Js.Array.length(fst(Belt.Option.getExn(roomPlaylist)))
-            - 1) {
+        None;
+      | None =>
+        if (isSyncing) {
+          SpotifyClient.pausePlayer() |> ignore;
+        };
+        None;
+      },
+    (roomRecord, isSyncing),
+  );
+
+  // TODO: move UI update into <CurrentRecord>
+  let roomTrackId =
+    Belt.Option.map(roomTrackWithMetadata, ((track, _, _)) => track.trackId);
+  React.useEffect1(
+    () =>
+      switch (roomTrackId) {
+      | Some(_) =>
+        let (roomTrack, index, startTimestamp) =
+          Belt.Option.getExn(roomTrackWithMetadata);
+        let (_, tracks, _) = Belt.Option.getExn(roomRecord);
+        if (index < Js.Array.length(tracks) - 1) {
           let songEnd = startTimestamp +. roomTrack.durationMs;
           let timeout =
             Js.Global.setTimeoutFloat(
@@ -106,24 +122,20 @@ let make = (~roomId: string) => {
         } else {
           None;
         };
-      | None =>
-        if (isSyncing) {
-          SpotifyClient.pausePlayer() |> ignore;
-        };
-        None;
+      | None => None
       },
-    (roomTrackId, isSyncing),
+    [|roomTrackId|],
   );
 
   <div className=Styles.root>
     <div>
       <RecordPlayer
-        startTimestamp={Belt.Option.map(roomPlaylist, ((_, startTimestamp)) =>
+        startTimestamp={Belt.Option.map(roomRecord, ((_, _, startTimestamp)) =>
           startTimestamp
         )}
         totalDuration={Belt.Option.map(
-          roomPlaylist,
-          ((tracks, _)) => {
+          roomRecord,
+          ((_, tracks, _)) => {
             let duration = ref(0.);
             tracks
             |> Js.Array.forEach((track: SocketMessage.roomTrack) => {
@@ -185,7 +197,7 @@ let make = (~roomId: string) => {
       {switch (roomTrackWithMetadata) {
        | Some((roomTrack, index, startTimestamp)) =>
          <CurrentRecord
-           roomPlaylist={Belt.Option.getExn(roomPlaylist)}
+           roomRecord={Belt.Option.getExn(roomRecord)}
            roomTrack
            index
            trackStartTimestamp=startTimestamp

@@ -1,7 +1,7 @@
 type room = {
   id: string,
   connections: array(SocketMessage.connection),
-  playlist: option((array(SocketMessage.roomTrack), float)),
+  record: option((string, array(SocketMessage.roomTrack), float)),
 };
 
 type state = {
@@ -13,7 +13,7 @@ type action =
   | RemoveConnection(string, string)
   | LogoutConnection(string, string)
   | UpdateRoom(room)
-  | UpdatePlaylist(string, array(SocketMessage.roomTrack), float)
+  | StartRecord(string, string, array(SocketMessage.roomTrack), float)
   | RemoveRecord(string)
   | UpdateRoomId(option(string));
 
@@ -76,13 +76,13 @@ let api =
       let clone = Js.Dict.fromArray(Js.Dict.entries(state.rooms));
       clone->Js.Dict.set(room.id, room);
       {...state, rooms: clone};
-    | UpdatePlaylist(roomId, roomTracks, startTimestamp) =>
+    | StartRecord(roomId, albumId, roomTracks, startTimestamp) =>
       switch (Js.Dict.get(state.rooms, roomId)) {
       | Some((room: room)) =>
         let clone = Js.Dict.fromArray(Js.Dict.entries(state.rooms));
         clone->Js.Dict.set(
           roomId,
-          {...room, playlist: Some((roomTracks, startTimestamp))},
+          {...room, record: Some((albumId, roomTracks, startTimestamp))},
         );
         {...state, rooms: clone};
       | None => state
@@ -91,7 +91,7 @@ let api =
       switch (Js.Dict.get(state.rooms, roomId)) {
       | Some((room: room)) =>
         let clone = Js.Dict.fromArray(Js.Dict.entries(state.rooms));
-        clone->Js.Dict.set(roomId, {...room, playlist: None});
+        clone->Js.Dict.set(roomId, {...room, record: None});
         {...state, rooms: clone};
       | None => state
       }
@@ -105,8 +105,8 @@ let getCurrentRoomId = () => api.getState().currentRoomId;
 
 let updateCurrentRoomId = roomId => api.dispatch(UpdateRoomId(roomId));
 let updateRoom = (room: room) => api.dispatch(UpdateRoom(room));
-let updatePlaylist = (roomId, roomTracks, startTimestamp) =>
-  api.dispatch(UpdatePlaylist(roomId, roomTracks, startTimestamp));
+let startRecord = (roomId, albumId, roomTracks, startTimestamp) =>
+  api.dispatch(StartRecord(roomId, albumId, roomTracks, startTimestamp));
 let removeRecord = roomId => api.dispatch(RemoveRecord(roomId));
 let addConnection = (roomId, connection) =>
   api.dispatch(AddConnection(roomId, connection));

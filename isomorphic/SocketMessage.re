@@ -98,11 +98,12 @@ type serverToClient =
   | Connected(
       string,
       array((string, string)),
+      string,
       array(serializedRoomTrack),
       float,
     )
   | NewConnection(string, (string, string))
   | LostConnection(string, string)
   | LogoutConnection(string, string)
-  | PublishPlaylist(string, array(serializedRoomTrack), float)
+  | StartRecord(string, string, array(serializedRoomTrack), float)
   | RemoveRecord(string);

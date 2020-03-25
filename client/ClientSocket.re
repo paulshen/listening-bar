@@ -23,16 +23,23 @@ let getSocket = () => {
           RoomStore.removeConnection(roomId, connectionId)
         | LogoutConnection(roomId, connectionId) =>
           RoomStore.logoutConnection(roomId, connectionId)
-        | Connected(roomId, connections, serializedTracks, startTimestamp) =>
+        | Connected(
+            roomId,
+            connections,
+            albumId,
+            serializedTracks,
+            startTimestamp,
+          ) =>
           RoomStore.updateRoom({
             id: roomId,
             connections:
               connections |> Js.Array.map(SocketMessage.deserializeConnection),
-            playlist:
+            record:
               if (serializedTracks == [||]) {
                 None;
               } else {
                 Some((
+                  albumId,
                   serializedTracks
                   |> Js.Array.map(SocketMessage.deserializeRoomTrack),
                   startTimestamp,
@@ -40,9 +47,10 @@ let getSocket = () => {
               },
           });
           RoomStore.updateCurrentRoomId(Some(roomId));
-        | PublishPlaylist(roomId, serializedTracks, startTimestamp) =>
-          RoomStore.updatePlaylist(
+        | StartRecord(roomId, albumId, serializedTracks, startTimestamp) =>
+          RoomStore.startRecord(
             roomId,
+            albumId,
             serializedTracks
             |> Js.Array.map(SocketMessage.deserializeRoomTrack),
             startTimestamp,

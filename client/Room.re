@@ -126,25 +126,23 @@ let make = (~roomId: string) => {
            <div>
              <button
                onClick={_ => {
-                 if (!isSyncing) {
-                   setIsSyncing(_ => true);
-                 };
                  {
                    let%Repromise currentTrack = SpotifyStore.fetchIfNeeded();
                    switch (currentTrack) {
-                   | Some((track, context, _)) =>
+                   | Some((track, _context, _)) =>
                      ClientSocket.publishCurrentTrack(
                        UserStore.getSessionId()->Belt.Option.getExn,
                        track.id,
-                       context.type_,
-                       context.id,
+                       // always publish track's album
+                       "album",
+                       track.album.id,
                        Js.Date.now(),
                      )
                    | _ => ()
                    };
                    Promise.resolved();
                  }
-                 |> ignore;
+                 |> ignore
                }}>
                {React.string("Put on Record")}
              </button>

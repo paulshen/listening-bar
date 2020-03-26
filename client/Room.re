@@ -18,6 +18,7 @@ module Styles = {
         ],
       ),
     ]);
+  let leftColumn = style([paddingBottom(px(64))]);
   let paneSpacer =
     style([
       width(px(64)),
@@ -116,6 +117,14 @@ module SpotifyStatePreview = {
     let albumImage =
       style([width(px(96)), height(px(96)), flexShrink(0.)]);
     let albumName = style([fontWeight(`num(600))]);
+    let startFrom =
+      style([
+        fontSize(px(10)),
+        letterSpacing(pxFloat(2.)),
+        marginTop(px(3)),
+        opacity(0.5),
+        textTransform(uppercase),
+      ]);
   };
 
   [@react.component]
@@ -131,6 +140,9 @@ module SpotifyStatePreview = {
             {React.string(track.album.name)}
           </div>
           <div> {React.string(track.artists[0].name)} </div>
+          <div className=Styles.startFrom>
+            {React.string("Starting From")}
+          </div>
           <div> {React.string(track.name)} </div>
         </div>
       </div>
@@ -148,12 +160,12 @@ module ControlButtons = {
     let controlButtons =
       style([
         borderTop(px(1), solid, rgba(253, 254, 195, 0.2)),
-        display(flexBox),
-        alignItems(center),
         marginTop(px(-24)),
         marginBottom(px(32)),
         paddingTop(px(8)),
       ]);
+    let controlButtonsRow =
+      style([display(flexBox), alignItems(center), marginBottom(px(12))]);
     let removeRecord =
       style([
         fontSize(px(12)),
@@ -162,6 +174,7 @@ module ControlButtons = {
         hover([opacity(1.)]),
         marginLeft(px(16)),
       ]);
+    let metaText = style([fontSize(px(12)), opacity(0.5)]);
   };
 
   [@react.component]
@@ -174,43 +187,50 @@ module ControlButtons = {
     };
     let onMouseLeave = _ => setShowPreview(_ => false);
     <div className=Styles.controlButtons>
-      <Button
-        onClick={_ => {
-          {
-            let%Repromise currentTrack =
-              SpotifyStore.fetchIfNeeded(~bufferMs=10000);
-            switch (currentTrack) {
-            | Some((track, _context, _)) =>
-              ClientSocket.publishCurrentTrack(
-                UserStore.getSessionId()->Belt.Option.getExn,
-                track.id,
-                // always publish track's album
-                "album",
-                track.album.id,
-                Js.Date.now(),
-              )
-            | _ => ()
-            };
-            Promise.resolved();
-          }
-          |> ignore
-        }}
-        onMouseEnter
-        onMouseLeave
-        domRef={ReactDOMRe.Ref.domRef(buttonRef)}>
-        {React.string(hasRecordPlaying ? "Change Album" : "Put on Album")}
-      </Button>
-      {hasRecordPlaying
-         ? <a
-             href="#"
-             onClick={e => {
-               ReactEvent.Mouse.preventDefault(e);
-               ClientSocket.removeRecord(roomId) |> ignore;
-             }}
-             className=Styles.removeRecord>
-             {React.string("Remove Album")}
-           </a>
-         : React.null}
+      <div className=Styles.controlButtonsRow>
+        <Button
+          onClick={_ => {
+            {
+              let%Repromise currentTrack =
+                SpotifyStore.fetchIfNeeded(~bufferMs=10000);
+              switch (currentTrack) {
+              | Some((track, _context, _)) =>
+                ClientSocket.publishCurrentTrack(
+                  UserStore.getSessionId()->Belt.Option.getExn,
+                  track.id,
+                  // always publish track's album
+                  "album",
+                  track.album.id,
+                  Js.Date.now(),
+                )
+              | _ => ()
+              };
+              Promise.resolved();
+            }
+            |> ignore
+          }}
+          onMouseEnter
+          onMouseLeave
+          domRef={ReactDOMRe.Ref.domRef(buttonRef)}>
+          {React.string(hasRecordPlaying ? "Change Album" : "Put on Album")}
+        </Button>
+        {hasRecordPlaying
+           ? <a
+               href="#"
+               onClick={e => {
+                 ReactEvent.Mouse.preventDefault(e);
+                 ClientSocket.removeRecord(roomId) |> ignore;
+               }}
+               className=Styles.removeRecord>
+               {React.string("Remove Album")}
+             </a>
+           : React.null}
+      </div>
+      <div className=Styles.metaText>
+        {React.string(
+           "This will use your currently playing track on Spotify.",
+         )}
+      </div>
       {showPreview
          ? <ReactAtmosphere.PopperLayer
              reference=buttonRef
@@ -347,7 +367,7 @@ let make = (~roomId: string) => {
   };
 
   <div className=Styles.root>
-    <div>
+    <div className=Styles.leftColumn>
       <RecordPlayer
         startTimestamp={
           switch (roomRecord, roomTrackWithMetadata) {
@@ -401,7 +421,7 @@ let make = (~roomId: string) => {
                     |> ignore;
                   }}
                   className=Styles.smallLink>
-                  {React.string("Manual Sync")}
+                  {React.string(isSyncing ? "Resync" : "One-time Sync")}
                 </a>
               | None => React.null
               }}
@@ -449,20 +469,20 @@ let make = (~roomId: string) => {
            <div className=Styles.connectedLabel>
              {React.string(
                 string_of_int(Js.Array.length(room.connections))
-                ++ " connected",
+                ++ " in room",
               )}
            </div>
            <div>
              {room.connections
               |> Js.Array.map((connection: SocketMessage.connection) =>
-                   switch (connection.userId) {
-                   | "" => React.null
-                   | userId =>
-                     <div
-                       className=Styles.connectedUsername key={connection.id}>
-                       {React.string(userId)}
-                     </div>
-                   }
+                   <div className=Styles.connectedUsername key={connection.id}>
+                     {React.string(
+                        switch (connection.userId) {
+                        | "" => "unknown"
+                        | userId => userId
+                        },
+                      )}
+                   </div>
                  )
               |> React.array}
            </div>
@@ -475,7 +495,11 @@ let make = (~roomId: string) => {
       <CurrentRecord
         roomTrackWithMetadata
         roomRecord
-        onTrackFinish={() => forceUpdate(x => x + 1)}
+        onTrackFinish={() => {
+          // Hack rare callback here
+          Js.Global.setTimeout(() => {forceUpdate(x => x + 1)}, 0)
+          |> ignore
+        }}
         isLoggedIn={Belt.Option.isSome(user)}
       />
     </div>

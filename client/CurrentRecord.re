@@ -67,7 +67,11 @@ module TrackRow = {
             Belt.Option.isSome(startTimestamp),
           ),
         ])}>
-        {React.string(track.trackName)}
+        <a
+          href={"https://open.spotify.com/track/" ++ track.trackId}
+          target="_blank">
+          {React.string(track.trackName)}
+        </a>
       </div>
       {switch (startTimestamp) {
        | Some(startTimestamp) =>
@@ -101,6 +105,7 @@ let make =
           <div className=Styles.albumNameRow>
             <a
               href={"https://open.spotify.com/album/" ++ roomTrack.albumId}
+              target="_blank"
               className=Styles.albumName>
               {React.string(roomTrack.albumName)}
             </a>
@@ -108,6 +113,7 @@ let make =
           <div>
             <a
               href={"https://open.spotify.com/artist/" ++ roomTrack.artistId}
+              target="_blank"
               className=Styles.trackArtist>
               {React.string(roomTrack.artistName)}
             </a>

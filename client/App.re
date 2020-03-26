@@ -1,17 +1,3 @@
-module Styles = {
-  open Css;
-  let header =
-    style([
-      display(flexBox),
-      fontSize(px(14)),
-      justifyContent(spaceBetween),
-      padding2(~v=px(16), ~h=px(32)),
-    ]);
-  let title =
-    style([textTransform(uppercase), letterSpacing(pxFloat(1.))]);
-  let headerRight = style([]);
-};
-
 [@bs.val] external decodeURIComponent: string => string = "decodeURIComponent";
 
 [@react.component]
@@ -47,27 +33,10 @@ let make = () => {
     },
     [|url|],
   );
-  let user = UserStore.useUser();
   <div>
-    <div className=Styles.header>
-      <div className=Styles.title> {React.string("Listening Bar")} </div>
-      <div className=Styles.headerRight>
-        {if (Belt.Option.isSome(user)) {
-           <a
-             href="#"
-             onClick={e => {
-               ReactEvent.Mouse.preventDefault(e);
-               API.logout();
-             }}>
-             {React.string("Logout")}
-           </a>;
-         } else {
-           React.null;
-         }}
-      </div>
-    </div>
     {switch (url.path) {
-     | [roomId] => <Room roomId />
+     | [roomId] => <Room roomId showAbout={url.hash == "about"} />
+     | [] => <IndexPage />
      | _ => React.null
      }}
     <ReactAtmosphere.LayerContainer />

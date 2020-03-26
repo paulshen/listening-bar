@@ -2,7 +2,7 @@ module Styles = {
   open Css;
   let root = style([media("(min-width: 1200px)", [display(flexBox)])]);
   let albumImage = style([width(px(320)), height(px(320))]);
-  let albumImagePlaceholder = style([backgroundColor(hex("000000"))]);
+  let albumImagePlaceholder = style([backgroundColor(hex("636363"))]);
   let albumInfo =
     style([
       textAlign(center),
@@ -27,7 +27,7 @@ module Styles = {
       media("(min-width: 1200px)", [marginLeft(px(64))]),
       media("(min-width: 1400px)", [marginLeft(px(128))]),
     ]);
-  let noRecordPlaylist = style([textAlign(center)]);
+  let noRecordPlaylistImage = style([width(px(320)), height(px(320))]);
 };
 
 module TrackRow = {
@@ -155,7 +155,10 @@ let make =
         </div>
       </div>
       <div className=Styles.playlist>
-        <div className=Styles.noRecordPlaylist />
+        <img
+          src="/assets/drawing.png"
+          className=Styles.noRecordPlaylistImage
+        />
       </div>
     </div>
   };

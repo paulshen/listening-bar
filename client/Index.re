@@ -4,7 +4,7 @@ open Belt.Option;
 {
   open Css;
   global(
-    "body, button",
+    "body, button, input",
     [fontFamily(`custom("Barlow Semi Condensed, sans-serif"))],
   );
   global(

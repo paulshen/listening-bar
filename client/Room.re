@@ -7,6 +7,7 @@ module Styles = {
       justifyContent(center),
       paddingTop(px(64)),
       paddingBottom(px(64)),
+      position(relative),
       media(
         "(max-width: 720px)",
         [
@@ -61,6 +62,16 @@ module Styles = {
     ]);
   let connectedUsername =
     style([display(inlineBlock), marginRight(px(8))]);
+  let aboutLink = style([marginRight(px(24))]);
+  let about =
+    style([
+      backgroundColor(rgba(62, 49, 43, 0.95)),
+      position(absolute),
+      top(zero),
+      left(zero),
+      right(zero),
+      minHeight(pct(100.)),
+    ]);
 };
 
 let syncBuffer = 3000.;
@@ -129,7 +140,18 @@ module SpotifyStatePreview = {
 
   [@react.component]
   let make = () => {
-    let {currentTrack}: SpotifyStore.state = SpotifyStore.useState();
+    let {currentTrack, playerState}: SpotifyStore.state =
+      SpotifyStore.useState();
+    let currentTrack =
+      switch (currentTrack, playerState) {
+      | (Some((track, _)), Playing(startTimestamp)) =>
+        if (startTimestamp +. track.durationMs > Js.Date.now()) {
+          currentTrack;
+        } else {
+          None;
+        }
+      | _ => None
+      };
     switch (currentTrack) {
     | Some((track, context)) =>
       <div className=Styles.root>
@@ -254,7 +276,7 @@ module ControlButtons = {
 };
 
 [@react.component]
-let make = (~roomId: string) => {
+let make = (~roomId: string, ~showAbout) => {
   let hasFetchedUser = UserStore.useHasFetched();
   let user = UserStore.useUser();
   let room = RoomStore.useRoom(roomId);
@@ -366,142 +388,174 @@ let make = (~roomId: string) => {
     setShowControls(_ => true);
   };
 
-  <div className=Styles.root>
-    <div className=Styles.leftColumn>
-      <RecordPlayer
-        startTimestamp={
-          switch (roomRecord, roomTrackWithMetadata) {
-          | (Some((_, _, startTimestamp)), Some(_)) => Some(startTimestamp)
-          | _ => None
-          }
-        }
-        totalDuration={Belt.Option.map(
-          roomRecord,
-          ((_, tracks, _)) => {
-            let duration = ref(0.);
-            tracks
-            |> Js.Array.forEach((track: SocketMessage.roomTrack) => {
-                 duration := duration^ +. track.durationMs
-               });
-            duration^;
-          },
-        )}
-        className=Styles.recordPlayer
-      />
-      <div className=Styles.smallLabel> {React.string("Room")} </div>
-      <div className=Styles.roomName> {React.string(roomId)} </div>
-      {switch (hasFetchedUser, user) {
-       | (false, _) => React.null
-       | (true, Some(_user)) =>
-         <div>
-           <div className=Styles.syncStatus>
-             {isSyncing
-                ? <div>
-                    {React.string(
-                       "If you leave this page, Spotify will stop syncing.",
-                     )}
-                  </div>
-                : <div> {React.string("Your Spotify is not synced.")} </div>}
-           </div>
-           <div className=Styles.syncRow>
-             {isSyncing
-                ? <Button onClick={_ => setIsSyncing(_ => false)}>
-                    {React.string("Stop Sync")}
-                  </Button>
-                : <Button onClick={_ => setIsSyncing(_ => true)}>
-                    {React.string("Start Sync")}
-                  </Button>}
-             {switch (roomTrackWithMetadata) {
-              | Some(roomTrackWithMetadata) =>
-                <a
-                  href="#"
-                  onClick={e => {
-                    ReactEvent.Mouse.preventDefault(e);
-                    syncSpotify(~roomTrackWithMetadata, ~force=false)
-                    |> ignore;
-                  }}
-                  className=Styles.smallLink>
-                  {React.string(isSyncing ? "Resync" : "One-time Sync")}
-                </a>
-              | None => React.null
+  <>
+    <HeaderBar
+      roomId
+      nav={
+        showAbout
+          ? <a
+              href={j|/$roomId|j}
+              onClick={e => {
+                ReactEvent.Mouse.preventDefault(e);
+                ReasonReactRouter.replace({j|/$roomId|j});
               }}
-             {!amOnlyOne
-                ? <div className=Styles.controlToggle>
-                    <a
-                      href="#"
-                      onClick={e => {
-                        ReactEvent.Mouse.preventDefault(e);
-                        setShowControls(show => !show);
-                      }}
-                      className=Styles.smallLink>
+              className=Styles.aboutLink>
+              {React.string("Return to room")}
+            </a>
+          : <a
+              href={j|/$roomId#about|j}
+              onClick={e => {
+                ReactEvent.Mouse.preventDefault(e);
+                ReasonReactRouter.replace({j|/$roomId#about|j});
+              }}
+              className=Styles.aboutLink>
+              {React.string("About")}
+            </a>
+      }
+    />
+    <div className=Styles.root>
+      <div className=Styles.leftColumn>
+        <RecordPlayer
+          startTimestamp={
+            switch (roomRecord, roomTrackWithMetadata) {
+            | (Some((_, _, startTimestamp)), Some(_)) =>
+              Some(startTimestamp)
+            | _ => None
+            }
+          }
+          totalDuration={Belt.Option.map(
+            roomRecord,
+            ((_, tracks, _)) => {
+              let duration = ref(0.);
+              tracks
+              |> Js.Array.forEach((track: SocketMessage.roomTrack) => {
+                   duration := duration^ +. track.durationMs
+                 });
+              duration^;
+            },
+          )}
+          className=Styles.recordPlayer
+        />
+        <div className=Styles.smallLabel> {React.string("Room")} </div>
+        <div className=Styles.roomName> {React.string(roomId)} </div>
+        {switch (hasFetchedUser, user) {
+         | (false, _) => React.null
+         | (true, Some(_user)) =>
+           <div>
+             <div className=Styles.syncStatus>
+               {isSyncing
+                  ? <div>
                       {React.string(
-                         showControls ? "Hide Controls" : "Show Controls",
+                         "If you leave this page, Spotify will stop syncing.",
                        )}
-                    </a>
-                  </div>
+                    </div>
+                  : <div> {React.string("Your Spotify is not synced.")} </div>}
+             </div>
+             <div className=Styles.syncRow>
+               {isSyncing
+                  ? <Button onClick={_ => setIsSyncing(_ => false)}>
+                      {React.string("Stop Sync")}
+                    </Button>
+                  : <Button onClick={_ => setIsSyncing(_ => true)}>
+                      {React.string("Start Sync")}
+                    </Button>}
+               {switch (roomTrackWithMetadata) {
+                | Some(roomTrackWithMetadata) =>
+                  <a
+                    href="#"
+                    onClick={e => {
+                      ReactEvent.Mouse.preventDefault(e);
+                      syncSpotify(~roomTrackWithMetadata, ~force=false)
+                      |> ignore;
+                    }}
+                    className=Styles.smallLink>
+                    {React.string(isSyncing ? "Resync" : "One-time Sync")}
+                  </a>
+                | None => React.null
+                }}
+               {!amOnlyOne
+                  ? <div className=Styles.controlToggle>
+                      <a
+                        href="#"
+                        onClick={e => {
+                          ReactEvent.Mouse.preventDefault(e);
+                          setShowControls(show => !show);
+                        }}
+                        className=Styles.smallLink>
+                        {React.string(
+                           showControls ? "Hide Controls" : "Show Controls",
+                         )}
+                      </a>
+                    </div>
+                  : React.null}
+             </div>
+             {showControls
+                ? <ControlButtons
+                    roomId
+                    hasRecordPlaying={Belt.Option.isSome(
+                      roomTrackWithMetadata,
+                    )}
+                  />
                 : React.null}
            </div>
-           {showControls
-              ? <ControlButtons
-                  roomId
-                  hasRecordPlaying={Belt.Option.isSome(roomTrackWithMetadata)}
-                />
-              : React.null}
-         </div>
-       | (true, None) =>
-         <div>
-           <div className=Styles.syncStatus>
-             {React.string("Login to sync your Spotify and change records.")}
-           </div>
-           <Button
-             onClick={e => {
-               ReactEvent.Mouse.preventDefault(e);
-               API.clientLogin();
-             }}
-             className=Styles.spotifyButton>
-             {React.string("Login with Spotify")}
-           </Button>
-         </div>
-       }}
-      {switch (room) {
-       | Some(room) =>
-         <div>
-           <div className=Styles.connectedLabel>
-             {React.string(
-                string_of_int(Js.Array.length(room.connections))
-                ++ " in room",
-              )}
-           </div>
+         | (true, None) =>
            <div>
-             {room.connections
-              |> Js.Array.map((connection: SocketMessage.connection) =>
-                   <div className=Styles.connectedUsername key={connection.id}>
-                     {React.string(
-                        switch (connection.userId) {
-                        | "" => "unknown"
-                        | userId => userId
-                        },
-                      )}
-                   </div>
-                 )
-              |> React.array}
+             <div className=Styles.syncStatus>
+               {React.string("Login to sync your Spotify and change records.")}
+             </div>
+             <Button
+               onClick={e => {
+                 ReactEvent.Mouse.preventDefault(e);
+                 API.clientLogin();
+               }}
+               className=Styles.spotifyButton>
+               {React.string("Login with Spotify")}
+             </Button>
            </div>
-         </div>
-       | None => React.null
-       }}
+         }}
+        {switch (room) {
+         | Some(room) =>
+           <div>
+             <div className=Styles.connectedLabel>
+               {React.string(
+                  string_of_int(Js.Array.length(room.connections))
+                  ++ " in room",
+                )}
+             </div>
+             <div>
+               {room.connections
+                |> Js.Array.map((connection: SocketMessage.connection) =>
+                     <div
+                       className=Styles.connectedUsername key={connection.id}>
+                       {React.string(
+                          switch (connection.userId) {
+                          | "" => "unknown"
+                          | userId => userId
+                          },
+                        )}
+                     </div>
+                   )
+                |> React.array}
+             </div>
+           </div>
+         | None => React.null
+         }}
+      </div>
+      <div className=Styles.paneSpacer />
+      <div>
+        <CurrentRecord
+          roomTrackWithMetadata
+          roomRecord
+          onTrackFinish={() => {
+            // Hack rare callback here
+            Js.Global.setTimeout(() => {forceUpdate(x => x + 1)}, 0)
+            |> ignore
+          }}
+          isLoggedIn={Belt.Option.isSome(user)}
+        />
+      </div>
+      {showAbout
+         ? <div className=Styles.about> <About roomId /> </div> : React.null}
     </div>
-    <div className=Styles.paneSpacer />
-    <div>
-      <CurrentRecord
-        roomTrackWithMetadata
-        roomRecord
-        onTrackFinish={() => {
-          // Hack rare callback here
-          Js.Global.setTimeout(() => {forceUpdate(x => x + 1)}, 0)
-          |> ignore
-        }}
-        isLoggedIn={Belt.Option.isSome(user)}
-      />
-    </div>
-  </div>;
+  </>;
 };

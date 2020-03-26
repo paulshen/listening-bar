@@ -242,7 +242,7 @@ SocketServer.onConnect(
                   serializedTracks
                   |> Js.Array.map(
                        (
-                         (_, _, _, _, _, _, _, duration): SocketMessage.serializedRoomTrack,
+                         (_, _, _, _, _, _, duration): SocketMessage.serializedRoomTrack,
                        ) =>
                        duration
                      ),

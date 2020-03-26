@@ -17,9 +17,14 @@ module Styles = {
       marginBottom(px(16)),
       textTransform(uppercase),
     ]);
-  let albumNameRow = style([marginBottom(px(4))]);
+  let albumNameRow = style([marginBottom(px(8))]);
   let albumName = style([fontSize(px(24)), fontWeight(`num(500))]);
-  let trackArtist = style([fontSize(px(18))]);
+  let trackArtist =
+    style([
+      fontSize(px(18)),
+      marginRight(px(12)),
+      lastChild([marginRight(zero)]),
+    ]);
   let playlist =
     style([
       width(px(320)),
@@ -113,12 +118,17 @@ let make =
             </a>
           </div>
           <div>
-            <a
-              href={"https://open.spotify.com/artist/" ++ roomTrack.artistId}
-              target="_blank"
-              className=Styles.trackArtist>
-              {React.string(roomTrack.artistName)}
-            </a>
+            {roomTrack.artists
+             |> Js.Array.map((artist: SocketMessage.roomTrackArtist) =>
+                  <a
+                    href={"https://open.spotify.com/artist/" ++ artist.id}
+                    target="_blank"
+                    className=Styles.trackArtist
+                    key={artist.id}>
+                    {React.string(artist.name)}
+                  </a>
+                )
+             |> React.array}
           </div>
         </div>
       </div>

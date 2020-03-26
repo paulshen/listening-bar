@@ -3,11 +3,14 @@ type connection = {
   id: string,
   userId: string,
 };
+type roomTrackArtist = {
+  id: string,
+  name: string,
+};
 type roomTrack = {
   trackId: string,
   trackName: string,
-  artistId: string,
-  artistName: string,
+  artists: array(roomTrackArtist),
   albumId: string,
   albumName: string,
   albumImage: string,
@@ -16,8 +19,7 @@ type roomTrack = {
 type serializedRoomTrack = (
   string,
   string,
-  string,
-  string,
+  array((string, string)),
   string,
   string,
   string,
@@ -28,8 +30,10 @@ let serializeSpotifyTrack = (track: SpotifyTypes.track): serializedRoomTrack => 
   (
     track.id,
     track.name,
-    track.artists[0].id,
-    track.artists[0].name,
+    track.artists
+    |> Js.Array.map((artist: SpotifyTypes.artist) =>
+         (artist.id, artist.name)
+       ),
     track.album.id,
     track.album.name,
     track.album.images[0].url,
@@ -39,23 +43,14 @@ let serializeSpotifyTrack = (track: SpotifyTypes.track): serializedRoomTrack => 
 
 let deserializeRoomTrack =
     (
-      (
-        trackId,
-        trackName,
-        artistId,
-        artistName,
-        albumId,
-        albumName,
-        albumImage,
-        durationMs,
-      ): serializedRoomTrack,
+      (trackId, trackName, artists, albumId, albumName, albumImage, durationMs): serializedRoomTrack,
     )
     : roomTrack => {
   {
     trackId,
     trackName,
-    artistId,
-    artistName,
+    artists:
+      artists |> Js.Array.map(((id, name)) => ({id, name}: roomTrackArtist)),
     albumId,
     albumName,
     albumImage,

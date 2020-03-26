@@ -53,7 +53,11 @@ module TrackRow = {
 
   [@react.component]
   let make =
-      (~track: SocketMessage.roomTrack, ~startTimestamp: option(float)) => {
+      (
+        ~track: SocketMessage.roomTrack,
+        ~startTimestamp: option(float),
+        ~onFinish,
+      ) => {
     <div className=Styles.root>
       <div
         className={Cn.make([
@@ -66,7 +70,8 @@ module TrackRow = {
         {React.string(track.trackName)}
       </div>
       {switch (startTimestamp) {
-       | Some(startTimestamp) => <TrackPlaybar startTimestamp track />
+       | Some(startTimestamp) =>
+         <TrackPlaybar startTimestamp track onFinish />
        | None => React.null
        }}
     </div>;
@@ -79,6 +84,7 @@ let make =
       ~roomTrackWithMetadata: option((SocketMessage.roomTrack, int, float)),
       ~roomRecord: option((string, array(SocketMessage.roomTrack), float)),
       ~isLoggedIn: bool,
+      ~onTrackFinish,
     ) => {
   switch (roomTrackWithMetadata) {
   | Some((roomTrack, index, trackStartTimestamp)) =>
@@ -120,6 +126,7 @@ let make =
                                    None;
                                  }
                                }
+                onFinish=onTrackFinish
                 key={track.trackId}
               />
             )

@@ -399,6 +399,7 @@ let make = (~roomId: string) => {
       <CurrentRecord
         roomTrackWithMetadata
         roomRecord
+        onTrackFinish={() => forceUpdate(x => x + 1)}
         isLoggedIn={Belt.Option.isSome(user)}
       />
     </div>

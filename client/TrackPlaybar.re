@@ -13,8 +13,13 @@ let displaySeconds = seconds => {
 };
 
 [@react.component]
-let make = (~startTimestamp: float, ~track: SocketMessage.roomTrack) => {
+let make =
+    (~startTimestamp: float, ~track: SocketMessage.roomTrack, ~onFinish) => {
   let (now, setNow) = React.useState(() => Js.Date.now());
+  if (startTimestamp +. track.durationMs < now) {
+    // we shouldn't be here
+    onFinish();
+  };
   React.useEffect0(() => {
     let interval =
       Js.Global.setInterval(() => {setNow(_ => Js.Date.now())}, 1000);

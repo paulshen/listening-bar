@@ -22,7 +22,8 @@
     "reason-promise",
     "@ahrefs/bs-dotenv",
     "bs-socket",
-    "@glennsl/bs-json"
+    "@glennsl/bs-json",
+    "bs-postgres"
   ],
   "warnings": {
     "error" : "+101"

@@ -31,7 +31,7 @@ let getUserId = accessToken => {
   ->Promise.resolved;
 };
 
-let getToken = code => {
+let getToken = (client, code) => {
   let formData = [|
     (
       "client_id",
@@ -85,14 +85,13 @@ let getToken = code => {
   let tokenExpireTime = Js.Date.now() +. expiresIn;
 
   let%Repromise userId = getUserId(accessToken);
-  Persist.updateUser({
-    id: userId,
-    accessToken,
-    refreshToken,
-    tokenExpireTime,
-  });
+  let%Repromise _ =
+    Database.updateUser(
+      client,
+      {id: userId, accessToken, refreshToken, tokenExpireTime},
+    );
   let sessionId = uuidV4();
-  Persist.addSession({id: sessionId, userId});
+  let%Repromise _ = Database.addSession(client, {id: sessionId, userId});
 
   Promise.resolved((sessionId, accessToken, userId));
 };

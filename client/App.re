@@ -20,7 +20,6 @@ let make = () => {
   React.useEffect1(
     () => {
       switch (url.path) {
-      | ["room", _] => API.fetchUser() |> ignore
       | ["oauth", "callback"] =>
         let components =
           url.search
@@ -42,7 +41,7 @@ let make = () => {
           Promise.resolved();
         }
         |> ignore;
-      | _ => ()
+      | _ => API.fetchUser() |> ignore
       };
       None;
     },
@@ -68,7 +67,7 @@ let make = () => {
       </div>
     </div>
     {switch (url.path) {
-     | ["room", roomId] => <Room roomId />
+     | [roomId] => <Room roomId />
      | _ => React.null
      }}
     <ReactAtmosphere.LayerContainer />

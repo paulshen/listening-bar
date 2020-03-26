@@ -107,6 +107,16 @@ module Styles = {
       position(relative),
       left(px(-2)),
     ]);
+  let userId =
+    style([
+      fontSize(px(14)),
+      position(absolute),
+      right(px(16)),
+      top(px(12)),
+      opacity(0.5),
+      transition(~duration=200, "opacity"),
+      hover([opacity(1.)]),
+    ]);
 };
 
 let recordStopDegree = (-30.);
@@ -126,6 +136,7 @@ external interpolate2: (('a, 'b), ('a, 'b) => string) => string =
 [@react.component]
 let make =
     (
+      ~userId: option(string),
       ~startTimestamp: option(float),
       ~totalDuration: option(float),
       ~className,
@@ -313,5 +324,10 @@ let make =
       </div>
       <div className=Styles.toneArmLongSegment />
     </Spring.Div>
+    {switch (userId) {
+     | Some(userId) =>
+       <div className=Styles.userId> {React.string(userId)} </div>
+     | None => React.null
+     }}
   </div>;
 };

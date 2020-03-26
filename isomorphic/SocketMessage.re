@@ -24,25 +24,6 @@ type serializedRoomTrack = (
   float,
 );
 
-let serializeOptionTrackState = trackState => {
-  switch (trackState) {
-  | Some(trackState) =>
-    let (trackId, contextType, contextId, startTimestamp) = trackState;
-    [|trackId, contextType, contextId, Js.Float.toString(startTimestamp)|]
-    |> Js.Array.joinWith(":");
-  | None => ""
-  };
-};
-
-let deserializeOptionTrackState = (input): option(trackState) => {
-  switch (input) {
-  | "" => None
-  | input =>
-    let pieces = input |> Js.String.split(":");
-    Some((pieces[0], pieces[1], pieces[2], Js.Float.fromString(pieces[3])));
-  };
-};
-
 let serializeSpotifyTrack = (track: SpotifyTypes.track): serializedRoomTrack => {
   (
     track.id,
@@ -118,6 +99,7 @@ type serverToClient =
   | Connected(
       string,
       array((string, string)),
+      string,
       string,
       array(serializedRoomTrack),
       float,

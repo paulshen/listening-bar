@@ -26,6 +26,7 @@ let getSocket = () => {
         | Connected(
             roomId,
             connections,
+            userId,
             albumId,
             serializedTracks,
             startTimestamp,
@@ -39,6 +40,7 @@ let getSocket = () => {
                 None;
               } else {
                 Some((
+                  userId,
                   albumId,
                   serializedTracks
                   |> Js.Array.map(SocketMessage.deserializeRoomTrack),
@@ -50,6 +52,7 @@ let getSocket = () => {
         | StartRecord(roomId, albumId, serializedTracks, startTimestamp) =>
           RoomStore.startRecord(
             roomId,
+            Belt.Option.getExn(UserStore.getUser()).id,
             albumId,
             serializedTracks
             |> Js.Array.map(SocketMessage.deserializeRoomTrack),

@@ -294,7 +294,8 @@ let make = (~roomId: string, ~showAbout) => {
   let (_, forceUpdate) = React.useState(() => 1);
   let roomRecord = Belt.Option.flatMap(room, room => room.record);
   let roomTrackWithMetadata =
-    Belt.Option.flatMap(roomRecord, ((_albumId, tracks, startTimestamp)) => {
+    Belt.Option.flatMap(
+      roomRecord, ((_userId, _albumId, tracks, startTimestamp)) => {
       Belt.Option.map(
         SocketMessage.getCurrentTrack(
           tracks
@@ -416,16 +417,22 @@ let make = (~roomId: string, ~showAbout) => {
     <div className=Styles.root>
       <div className=Styles.leftColumn>
         <RecordPlayer
+          userId={
+            switch (roomRecord, roomTrackWithMetadata) {
+            | (Some((userId, _, _, _)), Some(_)) => Some(userId)
+            | _ => None
+            }
+          }
           startTimestamp={
             switch (roomRecord, roomTrackWithMetadata) {
-            | (Some((_, _, startTimestamp)), Some(_)) =>
+            | (Some((_, _, _, startTimestamp)), Some(_)) =>
               Some(startTimestamp)
             | _ => None
             }
           }
           totalDuration={Belt.Option.map(
             roomRecord,
-            ((_, tracks, _)) => {
+            ((_, _, tracks, _)) => {
               let duration = ref(0.);
               tracks
               |> Js.Array.forEach((track: SocketMessage.roomTrack) => {

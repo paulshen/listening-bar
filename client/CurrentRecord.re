@@ -86,13 +86,15 @@ module TrackRow = {
 let make =
     (
       ~roomTrackWithMetadata: option((SocketMessage.roomTrack, int, float)),
-      ~roomRecord: option((string, array(SocketMessage.roomTrack), float)),
+      ~roomRecord:
+         option((string, string, array(SocketMessage.roomTrack), float)),
       ~isLoggedIn: bool,
       ~onTrackFinish,
     ) => {
   switch (roomTrackWithMetadata) {
   | Some((roomTrack, index, trackStartTimestamp)) =>
-    let (_albumId, playlistTracks, _) = Belt.Option.getExn(roomRecord);
+    let (userId, _albumId, playlistTracks, _) =
+      Belt.Option.getExn(roomRecord);
     <div className=Styles.root>
       <div>
         <div>

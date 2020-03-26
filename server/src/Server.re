@@ -236,7 +236,7 @@ SocketServer.onConnect(
             );
           let hasRecordEnded =
             switch (room.record) {
-            | Some((_albumId, serializedTracks, startTimestamp)) =>
+            | Some((_userId, _albumId, serializedTracks, startTimestamp)) =>
               let currentTrack =
                 SocketMessage.getCurrentTrack(
                   serializedTracks
@@ -279,15 +279,19 @@ SocketServer.onConnect(
               |> Js.Array.map(SocketMessage.serializeConnection),
               switch (updatedRoom.record) {
               | None => ""
-              | Some((albumId, _, _)) => albumId
+              | Some((userId, _, _, _)) => userId
+              },
+              switch (updatedRoom.record) {
+              | None => ""
+              | Some((_, albumId, _, _)) => albumId
               },
               switch (updatedRoom.record) {
               | None => [||]
-              | Some((_, serializedTracks, _)) => serializedTracks
+              | Some((_, _, serializedTracks, _)) => serializedTracks
               },
               switch (updatedRoom.record) {
               | None => 0.
-              | Some((_, _, startTimestamp)) => startTimestamp
+              | Some((_, _, _, startTimestamp)) => startTimestamp
               },
             ),
           );
@@ -299,11 +303,13 @@ SocketServer.onConnect(
             | Some(storedRoomId) =>
               let (trackId, contextType, contextId, startTimestamp) = trackState;
               let albumId = contextId;
+              let userId =
+                Option.map(Persist.getSession(sessionId), session =>
+                  session.userId
+                );
               let%Repromise accessToken =
-                Persist.getSession(sessionId)
-                ->Option.map(session =>
-                    getAccessTokenForUserId(session.userId)
-                  )
+                userId
+                ->Option.map(userId => getAccessTokenForUserId(userId))
                 ->Option.getWithDefault(Promise.resolved(None));
               switch (accessToken) {
               | Some(accessToken) =>
@@ -348,7 +354,12 @@ SocketServer.onConnect(
                   let updatedRoom = {
                     ...room,
                     record:
-                      Some((albumId, serializedRoomTracks, startTimestamp)),
+                      Some((
+                        Option.getExn(userId),
+                        albumId,
+                        serializedRoomTracks,
+                        startTimestamp,
+                      )),
                   };
                   rooms->Js.Dict.set(roomId, updatedRoom);
                   Persist.updateRoom(updatedRoom);

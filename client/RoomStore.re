@@ -1,7 +1,7 @@
 type room = {
   id: string,
   connections: array(SocketMessage.connection),
-  record: option((string, array(SocketMessage.roomTrack), float)),
+  record: option((string, string, array(SocketMessage.roomTrack), float)),
 };
 
 type state = {
@@ -13,7 +13,13 @@ type action =
   | RemoveConnection(string, string)
   | LogoutConnection(string, string)
   | UpdateRoom(room)
-  | StartRecord(string, string, array(SocketMessage.roomTrack), float)
+  | StartRecord(
+      string,
+      string,
+      string,
+      array(SocketMessage.roomTrack),
+      float,
+    )
   | RemoveRecord(string)
   | UpdateRoomId(option(string));
 
@@ -76,13 +82,16 @@ let api =
       let clone = Js.Dict.fromArray(Js.Dict.entries(state.rooms));
       clone->Js.Dict.set(room.id, room);
       {...state, rooms: clone};
-    | StartRecord(roomId, albumId, roomTracks, startTimestamp) =>
+    | StartRecord(roomId, userId, albumId, roomTracks, startTimestamp) =>
       switch (Js.Dict.get(state.rooms, roomId)) {
       | Some((room: room)) =>
         let clone = Js.Dict.fromArray(Js.Dict.entries(state.rooms));
         clone->Js.Dict.set(
           roomId,
-          {...room, record: Some((albumId, roomTracks, startTimestamp))},
+          {
+            ...room,
+            record: Some((userId, albumId, roomTracks, startTimestamp)),
+          },
         );
         {...state, rooms: clone};
       | None => state
@@ -105,8 +114,10 @@ let getCurrentRoomId = () => api.getState().currentRoomId;
 
 let updateCurrentRoomId = roomId => api.dispatch(UpdateRoomId(roomId));
 let updateRoom = (room: room) => api.dispatch(UpdateRoom(room));
-let startRecord = (roomId, albumId, roomTracks, startTimestamp) =>
-  api.dispatch(StartRecord(roomId, albumId, roomTracks, startTimestamp));
+let startRecord = (roomId, userId, albumId, roomTracks, startTimestamp) =>
+  api.dispatch(
+    StartRecord(roomId, userId, albumId, roomTracks, startTimestamp),
+  );
 let removeRecord = roomId => api.dispatch(RemoveRecord(roomId));
 let addConnection = (roomId, connection) =>
   api.dispatch(AddConnection(roomId, connection));

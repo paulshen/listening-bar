@@ -3,13 +3,13 @@ type playerState =
   | Playing(float);
 
 type state = {
-  currentTrack: option((SpotifyTypes.track, SpotifyTypes.context)),
+  currentTrack: option((SpotifyTypes.track, option(SpotifyTypes.context))),
   playerState,
   updateTimestamp: float,
 };
 type action =
   | UpdateState(
-      option((SpotifyTypes.track, SpotifyTypes.context)),
+      option((SpotifyTypes.track, option(SpotifyTypes.context))),
       playerState,
       float,
     );

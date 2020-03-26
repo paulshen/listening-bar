@@ -73,23 +73,30 @@ let rec getCurrentTrack = () => {
                  ),
                ),
         };
-      let context: SpotifyTypes.context = {
-        let json =
+      let context: option(SpotifyTypes.context) =
+        (
           Result.getExn(json)
           ->Js.Json.decodeObject
           ->Option.getExn
-          ->Js.Dict.unsafeGet("context");
-        Json.Decode.{
-          type_: json |> field("type", string),
-          id: {
-            let href = json |> field("href", string);
-            href
-            |> Js.String.substringToEnd(
-                 ~from=Js.String.lastIndexOf("/", href) + 1,
-               );
-          },
-        };
-      };
+          ->Js.Dict.unsafeGet("context")
+          |> Json.Decode.(
+               nullable((json) =>
+                 (
+                   {
+                     type_: json |> field("type", string),
+                     id: {
+                       let href = json |> field("href", string);
+                       href
+                       |> Js.String.substringToEnd(
+                            ~from=Js.String.lastIndexOf("/", href) + 1,
+                          );
+                     },
+                   }: SpotifyTypes.context
+                 )
+               )
+             )
+        )
+        ->Js.Null.toOption;
       let isPlaying =
         Result.getExn(json) |> Json.Decode.(field("is_playing", bool));
       let progressMs =

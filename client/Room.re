@@ -1,15 +1,32 @@
 module Styles = {
   open Css;
   let root =
-    style([display(flexBox), justifyContent(center), paddingTop(px(64))]);
+    style([
+      display(flexBox),
+      fontSize(px(14)),
+      justifyContent(center),
+      paddingTop(px(64)),
+      paddingBottom(px(64)),
+      media(
+        "(max-width: 720px)",
+        [
+          display(block),
+          width(px(320)),
+          marginLeft(auto),
+          marginRight(auto),
+          paddingTop(px(32)),
+        ],
+      ),
+    ]);
   let paneSpacer =
     style([
-      width(px(128)),
+      width(px(64)),
+      media("(min-width: 1000px)", [width(px(128))]),
       media("(min-width: 1200px)", [width(px(64))]),
       media("(min-width: 1400px)", [width(px(128))]),
     ]);
   let recordPlayer = style([marginBottom(px(32))]);
-  let roomLabel =
+  let smallLabel =
     style([
       fontSize(px(10)),
       letterSpacing(pxFloat(2.)),
@@ -17,9 +34,16 @@ module Styles = {
     ]);
   let roomName = style([fontSize(px(24)), marginBottom(px(32))]);
   let syncStatus = style([marginBottom(px(12))]);
+  let spotifyButton =
+    style([
+      backgroundColor(hex("1DB954E0")),
+      color(hex("f0f0f0")),
+      hover([backgroundColor(hex("1DB954"))]),
+      marginBottom(px(32)),
+    ]);
   let syncRow =
     style([display(flexBox), alignItems(center), marginBottom(px(32))]);
-  let manualSync =
+  let smallLink =
     style([
       fontSize(px(12)),
       textTransform(uppercase),
@@ -27,6 +51,15 @@ module Styles = {
       hover([opacity(1.)]),
       marginLeft(px(16)),
     ]);
+  let controlToggle = style([flexGrow(1.), textAlign(`right)]);
+  let connectedLabel =
+    style([
+      marginBottom(px(4)),
+      letterSpacing(pxFloat(1.)),
+      textTransform(uppercase),
+    ]);
+  let connectedUsername =
+    style([display(inlineBlock), marginRight(px(8))]);
 };
 
 let syncBuffer = 3000.;
@@ -46,8 +79,10 @@ let syncSpotify =
           switch (playerState) {
           | Playing(localStartTimestamp) =>
             localTrack.id === track.trackId
-            && localContext.type_ === "album"
-            && localContext.id === track.albumId
+            && Belt.Option.map(localContext, context => context.type_)
+            == Some("album")
+            && Belt.Option.map(localContext, context => context.id)
+            == Some(track.albumId)
             && Js.Math.abs_float(localStartTimestamp -. startTimestamp)
             < syncBuffer
           | NotPlaying => false
@@ -112,10 +147,12 @@ module ControlButtons = {
     open Css;
     let controlButtons =
       style([
+        borderTop(px(1), solid, rgba(253, 254, 195, 0.2)),
         display(flexBox),
         alignItems(center),
-        justifyContent(spaceBetween),
+        marginTop(px(-24)),
         marginBottom(px(32)),
+        paddingTop(px(8)),
       ]);
     let removeRecord =
       style([
@@ -123,6 +160,7 @@ module ControlButtons = {
         textTransform(uppercase),
         opacity(0.5),
         hover([opacity(1.)]),
+        marginLeft(px(16)),
       ]);
   };
 
@@ -160,7 +198,7 @@ module ControlButtons = {
         onMouseEnter
         onMouseLeave
         domRef={ReactDOMRe.Ref.domRef(buttonRef)}>
-        {React.string(hasRecordPlaying ? "Change Record" : "Put on Record")}
+        {React.string(hasRecordPlaying ? "Change Album" : "Put on Album")}
       </Button>
       {hasRecordPlaying
          ? <a
@@ -170,7 +208,7 @@ module ControlButtons = {
                ClientSocket.removeRecord(roomId) |> ignore;
              }}
              className=Styles.removeRecord>
-             {React.string("Remove Record")}
+             {React.string("Remove Album")}
            </a>
          : React.null}
       {showPreview
@@ -197,6 +235,7 @@ module ControlButtons = {
 
 [@react.component]
 let make = (~roomId: string) => {
+  let hasFetchedUser = UserStore.useHasFetched();
   let user = UserStore.useUser();
   let room = RoomStore.useRoom(roomId);
   let (isSyncing, setIsSyncing) = React.useState(() => false);
@@ -297,12 +336,25 @@ let make = (~roomId: string) => {
     [|roomTrackId|],
   );
 
+  let (showControls, setShowControls) = React.useState(() => false);
+  let amOnlyOne =
+    switch (room) {
+    | Some(room) => Js.Array.length(room.connections) == 1
+    | None => false
+    };
+  if (amOnlyOne && !showControls) {
+    setShowControls(_ => true);
+  };
+
   <div className=Styles.root>
     <div>
       <RecordPlayer
-        startTimestamp={Belt.Option.map(roomRecord, ((_, _, startTimestamp)) =>
-          startTimestamp
-        )}
+        startTimestamp={
+          switch (roomRecord, roomTrackWithMetadata) {
+          | (Some((_, _, startTimestamp)), Some(_)) => Some(startTimestamp)
+          | _ => None
+          }
+        }
         totalDuration={Belt.Option.map(
           roomRecord,
           ((_, tracks, _)) => {
@@ -316,21 +368,19 @@ let make = (~roomId: string) => {
         )}
         className=Styles.recordPlayer
       />
-      <div className=Styles.roomLabel> {React.string("Room")} </div>
+      <div className=Styles.smallLabel> {React.string("Room")} </div>
       <div className=Styles.roomName> {React.string(roomId)} </div>
-      {switch (user) {
-       | Some(_user) =>
+      {switch (hasFetchedUser, user) {
+       | (false, _) => React.null
+       | (true, Some(_user)) =>
          <div>
            <div className=Styles.syncStatus>
              {isSyncing
-                ? <>
-                    <div> {React.string("Your Spotify is synced.")} </div>
-                    <div>
-                      {React.string(
-                         "If you leave this page, you will stop syncing.",
-                       )}
-                    </div>
-                  </>
+                ? <div>
+                    {React.string(
+                       "If you leave this page, Spotify will stop syncing.",
+                     )}
+                  </div>
                 : <div> {React.string("Your Spotify is not synced.")} </div>}
            </div>
            <div className=Styles.syncRow>
@@ -350,32 +400,53 @@ let make = (~roomId: string) => {
                     syncSpotify(~roomTrackWithMetadata, ~force=false)
                     |> ignore;
                   }}
-                  className=Styles.manualSync>
+                  className=Styles.smallLink>
                   {React.string("Manual Sync")}
                 </a>
               | None => React.null
               }}
+             {!amOnlyOne
+                ? <div className=Styles.controlToggle>
+                    <a
+                      href="#"
+                      onClick={e => {
+                        ReactEvent.Mouse.preventDefault(e);
+                        setShowControls(show => !show);
+                      }}
+                      className=Styles.smallLink>
+                      {React.string(
+                         showControls ? "Hide Controls" : "Show Controls",
+                       )}
+                    </a>
+                  </div>
+                : React.null}
            </div>
-           <ControlButtons
-             roomId
-             hasRecordPlaying={Belt.Option.isSome(roomTrackWithMetadata)}
-           />
+           {showControls
+              ? <ControlButtons
+                  roomId
+                  hasRecordPlaying={Belt.Option.isSome(roomTrackWithMetadata)}
+                />
+              : React.null}
          </div>
-       | None =>
+       | (true, None) =>
          <div>
+           <div className=Styles.syncStatus>
+             {React.string("Login to sync your Spotify and change records.")}
+           </div>
            <Button
              onClick={e => {
                ReactEvent.Mouse.preventDefault(e);
                API.clientLogin();
-             }}>
-             {React.string("Login")}
+             }}
+             className=Styles.spotifyButton>
+             {React.string("Login with Spotify")}
            </Button>
          </div>
        }}
       {switch (room) {
        | Some(room) =>
          <div>
-           <div>
+           <div className=Styles.connectedLabel>
              {React.string(
                 string_of_int(Js.Array.length(room.connections))
                 ++ " connected",
@@ -384,9 +455,14 @@ let make = (~roomId: string) => {
            <div>
              {room.connections
               |> Js.Array.map((connection: SocketMessage.connection) =>
-                   <div key={connection.id}>
-                     {React.string(connection.userId)}
-                   </div>
+                   switch (connection.userId) {
+                   | "" => React.null
+                   | userId =>
+                     <div
+                       className=Styles.connectedUsername key={connection.id}>
+                       {React.string(userId)}
+                     </div>
+                   }
                  )
               |> React.array}
            </div>

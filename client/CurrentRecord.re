@@ -2,7 +2,7 @@ module Styles = {
   open Css;
   let root = style([media("(min-width: 1200px)", [display(flexBox)])]);
   let albumImage = style([width(px(320)), height(px(320))]);
-  let albumImagePlaceholder = style([backgroundColor(hex("6c564b"))]);
+  let albumImagePlaceholder = style([backgroundColor(hex("000000"))]);
   let albumInfo =
     style([
       textAlign(center),

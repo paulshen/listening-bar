@@ -2,7 +2,7 @@ module Styles = {
   open Css;
   let root =
     style([
-      backgroundColor(hex("CFC1AE")),
+      backgroundColor(hex("ab9270")),
       borderRadius(px(4)),
       width(px(320)),
       height(px(208)),
@@ -83,7 +83,7 @@ module Styles = {
     ]);
   let toneArmLongSegment =
     style([
-      backgroundColor(hex("958D82")),
+      backgroundColor(hex("82796d")),
       width(px(6)),
       height(px(176)),
       borderBottomLeftRadius(px(3)),
@@ -92,7 +92,7 @@ module Styles = {
     ]);
   let toneArmShortSegment =
     style([
-      backgroundColor(hex("958D82")),
+      backgroundColor(hex("82796d")),
       width(px(6)),
       height(px(64)),
       marginBottom(px(-2)),

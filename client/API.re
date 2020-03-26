@@ -99,13 +99,21 @@ let fetchUser = () => {
           (),
         ),
       );
-    let%Repromise.Js json = Fetch.Response.json(Result.getExn(response));
-    let json = Result.getExn(json);
-    open Json.Decode;
-    let userId = json |> field("userId", string);
-    let accessToken = json |> field("accessToken", string);
-    UserStore.updateUser({id: userId, accessToken});
+    switch (response) {
+    | Ok(response) =>
+      let%Repromise.Js json = Fetch.Response.json(response);
+      let json = Result.getExn(json);
+      open Json.Decode;
+      let userId = json |> field("userId", string);
+      let accessToken = json |> field("accessToken", string);
+      UserStore.updateUser({id: userId, accessToken});
+      Promise.resolved();
+    | Error(_) =>
+      UserStore.fetchFail();
+      Promise.resolved();
+    };
+  | None =>
+    UserStore.fetchFail();
     Promise.resolved();
-  | None => Promise.resolved()
   };
 };

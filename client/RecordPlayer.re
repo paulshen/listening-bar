@@ -124,7 +124,12 @@ external interpolate2: (('a, 'b), ('a, 'b) => string) => string =
   "interpolate";
 
 [@react.component]
-let make = (~startTimestamp: option(float), ~totalDuration: option(float)) => {
+let make =
+    (
+      ~startTimestamp: option(float),
+      ~totalDuration: option(float),
+      ~className,
+    ) => {
   let (_, forceUpdate) = React.useState(() => 1);
   let playProgress =
     switch (startTimestamp, totalDuration) {
@@ -269,7 +274,7 @@ let make = (~startTimestamp: option(float), ~totalDuration: option(float)) => {
     [|isPlaying|],
   );
 
-  <div className=Styles.root>
+  <div className={Cn.make([Styles.root, className])}>
     <div className=Styles.turntableContainer>
       <Spring.Div
         className=Styles.turntable

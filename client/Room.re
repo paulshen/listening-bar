@@ -8,6 +8,25 @@ module Styles = {
       media("(min-width: 1200px)", [width(px(64))]),
       media("(min-width: 1400px)", [width(px(128))]),
     ]);
+  let recordPlayer = style([marginBottom(px(32))]);
+  let roomLabel =
+    style([
+      fontSize(px(10)),
+      letterSpacing(pxFloat(2.)),
+      textTransform(uppercase),
+    ]);
+  let roomName = style([fontSize(px(24)), marginBottom(px(32))]);
+  let syncStatus = style([marginBottom(px(12))]);
+  let syncRow =
+    style([display(flexBox), alignItems(center), marginBottom(px(32))]);
+  let manualSync =
+    style([
+      fontSize(px(12)),
+      textTransform(uppercase),
+      opacity(0.5),
+      hover([opacity(1.)]),
+      marginLeft(px(16)),
+    ]);
 };
 
 let syncBuffer = 3000.;
@@ -55,10 +74,12 @@ module SpotifyStatePreview = {
         fontSize(px(14)),
         padding(px(16)),
         boxSizing(borderBox),
-        width(px(288)),
+        minWidth(px(288)),
+        maxWidth(px(320)),
       ]);
     let spacer = style([width(px(24))]);
-    let albumImage = style([width(px(96)), height(px(96))]);
+    let albumImage =
+      style([width(px(96)), height(px(96)), flexShrink(0.)]);
     let albumName = style([fontWeight(`num(600))]);
   };
 
@@ -87,8 +108,26 @@ module SpotifyStatePreview = {
 };
 
 module ControlButtons = {
+  module Styles = {
+    open Css;
+    let controlButtons =
+      style([
+        display(flexBox),
+        alignItems(center),
+        justifyContent(spaceBetween),
+        marginBottom(px(32)),
+      ]);
+    let removeRecord =
+      style([
+        fontSize(px(12)),
+        textTransform(uppercase),
+        opacity(0.5),
+        hover([opacity(1.)]),
+      ]);
+  };
+
   [@react.component]
-  let make = (~hasRecordPlaying) => {
+  let make = (~roomId, ~hasRecordPlaying) => {
     let buttonRef = React.useRef(Js.Nullable.null);
     let (showPreview, setShowPreview) = React.useState(() => false);
     let onMouseEnter = _ => {
@@ -96,8 +135,8 @@ module ControlButtons = {
       setShowPreview(_ => true);
     };
     let onMouseLeave = _ => setShowPreview(_ => false);
-    <div>
-      <button
+    <div className=Styles.controlButtons>
+      <Button
         onClick={_ => {
           {
             let%Repromise currentTrack =
@@ -120,9 +159,20 @@ module ControlButtons = {
         }}
         onMouseEnter
         onMouseLeave
-        ref={ReactDOMRe.Ref.domRef(buttonRef)}>
+        domRef={ReactDOMRe.Ref.domRef(buttonRef)}>
         {React.string(hasRecordPlaying ? "Change Record" : "Put on Record")}
-      </button>
+      </Button>
+      {hasRecordPlaying
+         ? <a
+             href="#"
+             onClick={e => {
+               ReactEvent.Mouse.preventDefault(e);
+               ClientSocket.removeRecord(roomId) |> ignore;
+             }}
+             className=Styles.removeRecord>
+             {React.string("Remove Record")}
+           </a>
+         : React.null}
       {showPreview
          ? <ReactAtmosphere.PopperLayer
              reference=buttonRef
@@ -264,75 +314,62 @@ let make = (~roomId: string) => {
             duration^;
           },
         )}
+        className=Styles.recordPlayer
       />
-      <div> {React.string(roomId)} </div>
+      <div className=Styles.roomLabel> {React.string("Room")} </div>
+      <div className=Styles.roomName> {React.string(roomId)} </div>
       {switch (user) {
-       | Some(user) =>
+       | Some(_user) =>
          <div>
-           <div> {React.string(user.id)} </div>
-           {isSyncing
-              ? <div>
-                  <div>
-                    {React.string(
-                       "You are listening in this room. Your Spotify is synced.",
-                     )}
-                  </div>
-                  <div>
-                    {React.string(
-                       "If you leave this page, you will stop syncing.",
-                     )}
-                  </div>
-                  <button onClick={_ => setIsSyncing(_ => false)}>
+           <div className=Styles.syncStatus>
+             {isSyncing
+                ? <>
+                    <div> {React.string("Your Spotify is synced.")} </div>
+                    <div>
+                      {React.string(
+                         "If you leave this page, you will stop syncing.",
+                       )}
+                    </div>
+                  </>
+                : <div> {React.string("Your Spotify is not synced.")} </div>}
+           </div>
+           <div className=Styles.syncRow>
+             {isSyncing
+                ? <Button onClick={_ => setIsSyncing(_ => false)}>
                     {React.string("Stop Sync")}
-                  </button>
-                </div>
-              : <div>
-                  <div>
-                    {React.string(
-                       "You are not syncing your Spotify to this room.",
-                     )}
-                  </div>
-                  <button onClick={_ => setIsSyncing(_ => true)}>
+                  </Button>
+                : <Button onClick={_ => setIsSyncing(_ => true)}>
                     {React.string("Start Sync")}
-                  </button>
-                </div>}
-           {switch (roomTrackWithMetadata) {
-            | Some(roomTrackWithMetadata) =>
-              <div>
-                <button
-                  onClick={_ => {
+                  </Button>}
+             {switch (roomTrackWithMetadata) {
+              | Some(roomTrackWithMetadata) =>
+                <a
+                  href="#"
+                  onClick={e => {
+                    ReactEvent.Mouse.preventDefault(e);
                     syncSpotify(~roomTrackWithMetadata, ~force=false)
-                    |> ignore
-                  }}>
+                    |> ignore;
+                  }}
+                  className=Styles.manualSync>
                   {React.string("Manual Sync")}
-                </button>
-              </div>
-            | None => React.null
-            }}
+                </a>
+              | None => React.null
+              }}
+           </div>
            <ControlButtons
+             roomId
              hasRecordPlaying={Belt.Option.isSome(roomTrackWithMetadata)}
            />
-           {if (Belt.Option.isSome(roomRecord)) {
-              <div>
-                <button
-                  onClick={_ => {ClientSocket.removeRecord(roomId) |> ignore}}>
-                  {React.string("Remove Record")}
-                </button>
-              </div>;
-            } else {
-              React.null;
-            }}
          </div>
        | None =>
          <div>
-           <a
-             href="#"
+           <Button
              onClick={e => {
                ReactEvent.Mouse.preventDefault(e);
                API.clientLogin();
              }}>
              {React.string("Login")}
-           </a>
+           </Button>
          </div>
        }}
       {switch (room) {

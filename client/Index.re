@@ -3,14 +3,10 @@ open Belt.Option;
 
 {
   open Css;
+  global("body, button", [fontFamily(`custom("Barlow Semi Condensed"))]);
   global(
     "body",
-    [
-      backgroundColor(hex("3E312B")),
-      color(hex("f0f0f0")),
-      fontFamily(`custom("Barlow Semi Condensed")),
-      margin(zero),
-    ],
+    [backgroundColor(hex("3E312B")), color(hex("f0f0f0")), margin(zero)],
   );
   global(
     "a",

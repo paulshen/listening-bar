@@ -171,6 +171,7 @@ Middleware.from((next, req, res) => {
     ->Js.Dict.unsafeGet("roomId")
     ->Js.Json.decodeString
     ->Option.getExn;
+  let roomId = Js.String.toLowerCase(roomId);
   let room = rooms->Js.Dict.get(roomId);
   switch (room) {
   | Some(room) =>
@@ -204,6 +205,7 @@ SocketServer.onConnect(
         Js.log(message);
         switch (message) {
         | JoinRoom(roomId, sessionId) =>
+          let roomId = Js.String.toLowerCase(roomId);
           socket->Socket.join(roomId) |> ignore;
           let session: option(User.session) =
             if (sessionId == "") {
@@ -291,6 +293,7 @@ SocketServer.onConnect(
           );
           roomIdRef := Some(roomId);
         | PublishTrackState(sessionId, roomId, trackState) =>
+          let roomId = Js.String.toLowerCase(roomId);
           (
             switch (roomIdRef^) {
             | Some(storedRoomId) =>
@@ -368,8 +371,9 @@ SocketServer.onConnect(
             | None => Promise.resolved()
             }
           )
-          |> ignore
+          |> ignore;
         | RemoveRecord(roomId) =>
+          let roomId = Js.String.toLowerCase(roomId);
           switch (roomIdRef^) {
           | Some(roomId) =>
             // TODO: check roomId == storedRoomId
@@ -382,8 +386,9 @@ SocketServer.onConnect(
             };
             io->inRoom(roomId)->Socket.emit(RemoveRecord(roomId));
           | None => ()
-          }
+          };
         | Logout(roomId) =>
+          let roomId = Js.String.toLowerCase(roomId);
           switch (Js.Dict.get(rooms, roomId)) {
           | Some(room) =>
             let updatedRoom = {
@@ -402,7 +407,7 @@ SocketServer.onConnect(
             ->inRoom(roomId)
             ->Socket.emit(LogoutConnection(roomId, socketId));
           | None => ()
-          }
+          };
         };
       },
     );

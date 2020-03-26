@@ -12,7 +12,14 @@ open Belt.Option;
       margin(zero),
     ],
   );
-  global("a", [color(hex("f0f0f0")), textDecoration(none)]);
+  global(
+    "a",
+    [
+      color(hex("f0f0f0")),
+      textDecoration(none),
+      hover([textDecoration(underline)]),
+    ],
+  );
 };
 
 let root =

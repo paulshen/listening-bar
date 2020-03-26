@@ -324,7 +324,16 @@ let make = (~roomId: string) => {
             }}
          </div>
        | None =>
-         <div> <Link path="/login"> {React.string("Login")} </Link> </div>
+         <div>
+           <a
+             href="#"
+             onClick={e => {
+               ReactEvent.Mouse.preventDefault(e);
+               API.clientLogin();
+             }}>
+             {React.string("Login")}
+           </a>
+         </div>
        }}
       {switch (room) {
        | Some(room) =>

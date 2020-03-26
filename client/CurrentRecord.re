@@ -142,13 +142,7 @@ let make =
         </div>
       </div>
       <div className=Styles.playlist>
-        <div className=Styles.noRecordPlaylist>
-          {React.string(
-             isLoggedIn
-               ? "Play an album on Spotify and press Put On Record"
-               : "Login to play a record",
-           )}
-        </div>
+        <div className=Styles.noRecordPlaylist />
       </div>
     </div>
   };

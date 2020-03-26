@@ -94,7 +94,7 @@ let getToken = code => {
   let sessionId = uuidV4();
   Persist.addSession({id: sessionId, userId});
 
-  Promise.resolved((sessionId, accessToken));
+  Promise.resolved((sessionId, accessToken, userId));
 };
 
 let refreshToken = refreshToken => {
@@ -152,6 +152,7 @@ let jsonToTrack =
   Json.Decode.{
     id: json |> field("id", string),
     name: json |> field("name", string),
+    trackNumber: json |> field("track_number", int),
     durationMs: json |> field("duration_ms", Json.Decode.float),
     uri: json |> field("uri", string),
     album:

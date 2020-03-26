@@ -11,6 +11,7 @@ module Styles = {
     style([textTransform(uppercase), letterSpacing(pxFloat(1.))]);
   let roomId = style([]);
   let headerRight = style([]);
+  let logoutLink = style([marginLeft(px(24))]);
 };
 
 [@react.component]
@@ -58,7 +59,8 @@ let make = (~roomId=?, ~nav=React.null, ()) => {
            onClick={e => {
              ReactEvent.Mouse.preventDefault(e);
              API.logout();
-           }}>
+           }}
+           className=Styles.logoutLink>
            {React.string("Logout")}
          </a>;
        } else {

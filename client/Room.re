@@ -62,7 +62,7 @@ module Styles = {
     ]);
   let connectedUsername =
     style([display(inlineBlock), marginRight(px(8))]);
-  let aboutLink = style([marginRight(px(24))]);
+  let aboutLink = style([]);
   let about =
     style([
       backgroundColor(rgba(62, 49, 43, 0.95)),

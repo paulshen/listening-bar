@@ -7,10 +7,7 @@ open Belt.Option;
     "body, button, input",
     [fontFamily(`custom("Barlow Semi Condensed, sans-serif"))],
   );
-  global(
-    "body",
-    [backgroundColor(hex("3E312B")), color(hex("f0f0f0")), margin(zero)],
-  );
+  global("body", [color(hex("f0f0f0")), margin(zero)]);
   global(
     "a",
     [

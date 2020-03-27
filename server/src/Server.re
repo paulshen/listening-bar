@@ -167,7 +167,8 @@ let onListen = e =>
 
 let server = App.listen(app, ~port=3030, ~onListen, ());
 
-let rooms: Js.Dict.t(Room.t) = Js.Dict.empty();
+let roomConnections: Js.Dict.t(array(SocketMessage.connection)) =
+  Js.Dict.empty();
 
 let io = SocketServer.createWithHttp(server);
 Router.get(apiRouter, ~path="/rooms/:roomId") @@
@@ -179,13 +180,13 @@ Middleware.from((next, req, res) => {
     ->Option.getExn
     ->Utils.sanitizeRoomId;
   let roomId = Js.String.toLowerCase(roomId);
-  let room = rooms->Js.Dict.get(roomId);
-  switch (room) {
-  | Some(room) =>
+  let connections = roomConnections->Js.Dict.get(roomId);
+  switch (connections) {
+  | Some(connections) =>
     res
     |> Response.sendJson(
          Js.Json.array(
-           room.connections
+           connections
            |> Js.Array.map((connection: SocketMessage.connection) =>
                 Js.Json.stringArray([|connection.id, connection.userId|])
               ),
@@ -215,16 +216,22 @@ SocketServer.onConnect(
           {
             let roomId = Js.String.toLowerCase(Utils.sanitizeRoomId(roomId));
             socket->Socket.join(roomId) |> ignore;
-            let%Repromise session: Promise.t(option(User.session)) =
-              if (sessionId == "") {
-                Promise.resolved(None);
-              } else {
-                let%Repromise client = Database.getClient();
-                let%Repromise session =
-                  Database.getSession(client, sessionId);
-                Database.releaseClient(client) |> ignore;
-                Promise.resolved(session);
-              };
+            let%Repromise client = Database.getClient();
+            let%Repromise (
+              session: option(User.session),
+              room: option(Room.t),
+            ) =
+              Promise.all2(
+                if (sessionId == "") {
+                  Promise.resolved(None);
+                } else {
+                  let%Repromise session =
+                    Database.getSession(client, sessionId);
+                  Promise.resolved(session);
+                },
+                Database.getRoom(client, roomId),
+              );
+            Database.releaseClient(client) |> ignore;
             let connection: SocketMessage.connection = {
               id: socketId,
               userId:
@@ -242,9 +249,11 @@ SocketServer.onConnect(
                 ),
               );
             let room =
+              Option.getWithDefault(room, {id: roomId, record: None});
+            let connections =
               Option.getWithDefault(
-                rooms->Js.Dict.get(roomId),
-                {id: roomId, connections: [||], record: None},
+                Js.Dict.get(roomConnections, roomId),
+                [||],
               );
             let hasRecordEnded =
               !(Constants.foreverRoomIds |> Js.Array.includes(roomId))
@@ -273,26 +282,22 @@ SocketServer.onConnect(
               } else {
                 room;
               };
-            let updatedRoom =
-              if (updatedRoom.connections
+            let updatedConnections =
+              if (connections
                   |> Js.Array.findIndex(
                        (connection: SocketMessage.connection) =>
                        connection.id == socketId
                      )
                   == (-1)) {
-                {
-                  ...updatedRoom,
-                  connections:
-                    updatedRoom.connections |> Js.Array.concat([|connection|]),
-                };
+                connections |> Js.Array.concat([|connection|]);
               } else {
-                updatedRoom;
+                connections;
               };
-            rooms->Js.Dict.set(roomId, updatedRoom);
+            roomConnections->Js.Dict.set(roomId, updatedConnections);
             socket->Socket.emit(
               Connected(
                 roomId,
-                updatedRoom.connections
+                updatedConnections
                 |> Js.Array.map(SocketMessage.serializeConnection),
                 switch (updatedRoom.record) {
                 | None => ""
@@ -324,7 +329,11 @@ SocketServer.onConnect(
               let (trackId, contextType, contextId, startTimestamp) = trackState;
               let albumId = contextId;
               let%Repromise client = Database.getClient();
-              let%Repromise session = Database.getSession(client, sessionId);
+              let%Repromise (session, room) =
+                Promise.all2(
+                  Database.getSession(client, sessionId),
+                  Database.getRoom(client, roomId),
+                );
               let userId = Option.map(session, session => session.userId);
               let%Repromise accessToken =
                 userId
@@ -373,7 +382,7 @@ SocketServer.onConnect(
                   tracks |> Js.Array.map(SocketMessage.serializeSpotifyTrack);
 
                 // TODO: check roomId == storedRoomId
-                switch (Js.Dict.get(rooms, roomId)) {
+                switch (room) {
                 | Some(room) =>
                   let updatedRoom = {
                     ...room,
@@ -385,7 +394,6 @@ SocketServer.onConnect(
                         startTimestamp,
                       )),
                   };
-                  rooms->Js.Dict.set(roomId, updatedRoom);
                   Database.updateRoom(client, updatedRoom) |> ignore;
                 | None => ()
                 };
@@ -415,15 +423,16 @@ SocketServer.onConnect(
           switch (roomIdRef^) {
           | Some(roomId) =>
             {
-              switch (Js.Dict.get(rooms, roomId)) {
-              | Some(room) =>
-                let updatedRoom = {...room, record: None};
-                rooms->Js.Dict.set(roomId, updatedRoom);
-                let%Repromise client = Database.getClient();
-                let%Repromise _ = Database.updateRoom(client, updatedRoom);
-                Database.releaseClient(client);
-              | None => Promise.resolved()
-              };
+              let%Repromise client = Database.getClient();
+              let%Repromise room = Database.getRoom(client, roomId);
+              let%Repromise _ =
+                switch (room) {
+                | Some(room) =>
+                  let updatedRoom = {...room, record: None};
+                  Database.updateRoom(client, updatedRoom);
+                | None => Promise.resolved()
+                };
+              Database.releaseClient(client);
             }
             |> ignore;
             io->inRoom(roomId)->Socket.emit(RemoveRecord(roomId));
@@ -432,24 +441,16 @@ SocketServer.onConnect(
           };
         | Logout(roomId) =>
           let roomId = Js.String.toLowerCase(Utils.sanitizeRoomId(roomId));
-          switch (Js.Dict.get(rooms, roomId)) {
-          | Some(room) =>
-            let updatedRoom = {
-              ...room,
-              connections:
-                room.connections
-                |> Js.Array.map((connection: SocketMessage.connection) =>
-                     connection.id != socketId
-                       ? connection : {id: socketId, userId: ""}
-                   ),
-            };
-            rooms->Js.Dict.set(roomId, updatedRoom);
-            {
-              let%Repromise client = Database.getClient();
-              let%Repromise _ = Database.updateRoom(client, updatedRoom);
-              Database.releaseClient(client);
-            }
-            |> ignore;
+          switch (Js.Dict.get(roomConnections, roomId)) {
+          | Some(connections) =>
+            roomConnections->Js.Dict.set(
+              roomId,
+              connections
+              |> Js.Array.map((connection: SocketMessage.connection) =>
+                   connection.id != socketId
+                     ? connection : {id: socketId, userId: ""}
+                 ),
+            );
 
             io
             ->inRoom(roomId)
@@ -463,26 +464,17 @@ SocketServer.onConnect(
     socket->Socket.onDisconnect(() => {
       switch (roomIdRef^) {
       | Some(roomId) =>
-        switch (Js.Dict.get(rooms, roomId)) {
-        | Some(room) =>
+        switch (Js.Dict.get(roomConnections, roomId)) {
+        | Some(connections) =>
           socket
           ->SocketServer.Socket.to_(roomId)
           ->Socket.emit(LostConnection(roomId, socketId));
-          let updatedRoom = {
-            ...room,
-            connections:
-              room.connections
-              |> Js.Array.filter((connection: SocketMessage.connection) =>
-                   connection.id != socketId
-                 ),
-          };
-          rooms->Js.Dict.set(roomId, updatedRoom);
-          {
-            let%Repromise client = Database.getClient();
-            let%Repromise _ = Database.updateRoom(client, updatedRoom);
-            Database.releaseClient(client);
-          }
-          |> ignore;
+          let updatedConnections =
+            connections
+            |> Js.Array.filter((connection: SocketMessage.connection) =>
+                 connection.id != socketId
+               );
+          roomConnections->Js.Dict.set(roomId, updatedConnections);
         | None => ()
         }
       | None => ()

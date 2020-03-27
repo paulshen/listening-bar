@@ -156,9 +156,7 @@ let getRoom = (client, roomId: string) => {
        );
   Promise.resolved(
     Option.map(result##rows[0], (row: dbRoomRow) =>
-      (
-        {id: row.id, connections: [||], record: Obj.magic(row.record)}: Room.t
-      )
+      ({id: row.id, record: Obj.magic(row.record)}: Room.t)
     ),
   );
 };

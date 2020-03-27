@@ -11,3 +11,4 @@ npm-debug.log
 db.json
 
 build/index.js
+build/assets/

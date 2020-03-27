@@ -109,10 +109,10 @@ Router.getWithMany(apiRouter, ~path="/user") @@
       switch (Request.get("Authorization", req)) {
       | Some(sessionId) =>
         let%Repromise session = Database.getSession(client, sessionId);
-        Database.releaseClient(client) |> ignore;
         switch (session) {
         | Some(session) =>
           setProperty(req, "session", Obj.magic(session), res) |> ignore;
+          setProperty(req, "client", Obj.magic(client), res) |> ignore;
           Promise.resolved(true);
         | None => Promise.resolved(false)
         };
@@ -122,12 +122,13 @@ Router.getWithMany(apiRouter, ~path="/user") @@
     if (authorized) {
       next(Next.middleware, res) |> Promise.resolved;
     } else {
+      Database.releaseClient(client) |> ignore;
       Response.sendStatus(Response.StatusCode.Unauthorized, res)
       |> Promise.resolved;
     };
   }),
   promiseMiddleware((next, req, res) => {
-    let%Repromise client = Database.getClient();
+    let client = Obj.magic(Option.getExn(getProperty(req, "client")));
     let userId =
       Obj.magic(Option.getExn(getProperty(req, "session")))##userId;
     let%Repromise accessToken = getAccessTokenForUserId(client, userId);

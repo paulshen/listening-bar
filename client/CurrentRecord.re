@@ -103,7 +103,11 @@ let make =
     <div className=Styles.root>
       <div>
         <div>
-          <img src={roomTrack.albumImage} className=Styles.albumImage />
+          <img
+            src={roomTrack.albumImage}
+            className=Styles.albumImage
+            key={roomTrack.albumId}
+          />
         </div>
         <div className=Styles.albumInfo>
           <div className=Styles.currentSpinning>

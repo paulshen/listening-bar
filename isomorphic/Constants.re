@@ -3,6 +3,6 @@ external nodeEnv: option(string) = "NODE_ENV";
 
 let serverUrl =
   nodeEnv === Some("production")
-    ? "https://listening.bar" : "http://localhost:3030";
+    ? "https://api.listening.bar" : "http://localhost:3030";
 let clientUrl =
-  nodeEnv === Some("production") ? serverUrl : "http://localhost:8000";
+  nodeEnv === Some("production") ? "https://listening.bar" : "http://localhost:8000";

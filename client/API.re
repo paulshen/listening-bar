@@ -25,7 +25,7 @@ let clientLogin = () => {
 let login = code => {
   let%Repromise.Js response =
     Fetch.fetchWithInit(
-      Constants.serverUrl ++ "/api/login",
+      Constants.serverUrl ++ "/login",
       Fetch.RequestInit.make(
         ~method_=Post,
         ~body=
@@ -70,7 +70,7 @@ let logout = () => {
     | Some(sessionId) =>
       let%Repromise.Js response =
         Fetch.fetchWithInit(
-          Constants.serverUrl ++ "/api/logout",
+          Constants.serverUrl ++ "/logout",
           Fetch.RequestInit.make(
             ~method_=Post,
             ~headers=Fetch.HeadersInit.make({"Authorization": sessionId}),
@@ -91,7 +91,7 @@ let fetchUser = () => {
   | Some(sessionId) =>
     let%Repromise.Js response =
       Fetch.fetchWithInit(
-        Constants.serverUrl ++ "/api/user",
+        Constants.serverUrl ++ "/user",
         Fetch.RequestInit.make(
           ~method_=Get,
           ~headers=Fetch.HeadersInit.make({"Authorization": sessionId}),

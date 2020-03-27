@@ -150,27 +150,7 @@ Router.getWithMany(apiRouter, ~path="/user") @@
   }),
 |];
 
-App.useRouterOnPath(app, ~path="/api", apiRouter);
-
-let dirname: option(string) = [%bs.node __dirname];
-App.get(app, ~path="/index.js") @@
-Middleware.from((next, req, res) => {
-  Response.sendFile(
-    Node.Path.dirname(Node.Path.dirname(Option.getExn(dirname)))
-    ++ "/build/index.js",
-    Js.Dict.empty(),
-    res,
-  )
-});
-App.get(app, ~path="/*") @@
-Middleware.from((next, req, res) => {
-  Response.sendFile(
-    Node.Path.dirname(Node.Path.dirname(Option.getExn(dirname)))
-    ++ "/build/index.html",
-    Js.Dict.empty(),
-    res,
-  )
-});
+App.useRouterOnPath(app, ~path="/", apiRouter);
 
 let onListen = e =>
   switch (e) {

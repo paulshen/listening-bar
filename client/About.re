@@ -14,6 +14,7 @@ module Styles = {
           width(px(320)),
           marginLeft(auto),
           marginRight(auto),
+          padding(zero),
         ],
       ),
       selector("& p", [marginTop(zero), marginBottom(px(24))]),
@@ -34,6 +35,7 @@ module Styles = {
       backgroundSize(cover),
       marginTop(zero),
       marginBottom(px(32)),
+      media("(max-width: 720px)", [margin2(~v=px(16), ~h=auto)]),
     ]);
 
   let roomForm = style([marginBottom(px(24))]);
@@ -50,6 +52,7 @@ module Styles = {
     style([
       backgroundColor(transparent),
       borderWidth(zero),
+      borderRadius(zero),
       borderBottom(px(1), solid, rgba(255, 255, 255, 0.5)),
       boxSizing(borderBox),
       color(hex("f0f0f0")),
@@ -102,7 +105,7 @@ let make = (~roomId=?, ()) => {
       <h1 className=Styles.logo> {React.string("listening.bar")} </h1>
       <p>
         {React.string(
-           "This is a place for shared listening of Spotify albums. Inspired by modern listening bars, where people gather to listen and appreciate music together.",
+           "This is a place for shared listening of Spotify albums. Inspired by modern listening bars, where people gather to appreciate music (and whiskey) together.",
          )}
       </p>
       <p>

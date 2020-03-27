@@ -70,6 +70,7 @@ module Styles = {
       marginBottom(px(32)),
       paddingTop(px(8)),
     ]);
+  let learnMoreLink = style([color(hex("FDFEC3c0"))]);
   let connectedLabel =
     style([
       marginBottom(px(4)),
@@ -586,8 +587,17 @@ let make = (~roomId: string, ~showAbout) => {
              {isForeverRoom
                 ? <div className=Styles.foreverRoomLabel>
                     {React.string(
-                       "This is a special room looping the same album.",
+                       "This is a special room looping the same album. ",
                      )}
+                    <a
+                      href={j|/$roomId#about|j}
+                      onClick={e => {
+                        ReactEvent.Mouse.preventDefault(e);
+                        ReasonReactRouter.replace({j|/$roomId#about|j});
+                      }}
+                      className=Styles.learnMoreLink>
+                      {React.string("Learn More")}
+                    </a>
                   </div>
                 : showControls
                     ? <ControlButtons

@@ -45,6 +45,7 @@ module Styles = {
     ]);
   let syncRow =
     style([display(flexBox), alignItems(center), marginBottom(px(32))]);
+  let listenAlongButtonEmpty = style([opacity(0.5)]);
   let smallLink =
     style([
       fontSize(px(12)),
@@ -54,6 +55,14 @@ module Styles = {
       marginLeft(px(16)),
     ]);
   let controlToggle = style([flexGrow(1.), textAlign(`right)]);
+  let spotifyPlayErrorLabel =
+    style([
+      color(hex("ff7c7c")),
+      fontSize(px(12)),
+      marginTop(px(-24)),
+      marginBottom(px(32)),
+      paddingTop(px(4)),
+    ]);
   let foreverRoomLabel =
     style([
       borderTop(px(1), solid, rgba(253, 254, 195, 0.2)),
@@ -113,9 +122,16 @@ let syncSpotify =
     };
   if (!skipSyncing) {
     let positionMs = Js.Date.now() -. startTimestamp;
-    SpotifyClient.playAlbum(track.albumId, index, positionMs) |> ignore;
+    let%Repromise response =
+      SpotifyClient.playAlbum(track.albumId, index, positionMs);
+    switch (response) {
+    | Ok () => SpotifyStore.updatePlayError(None)
+    | Error(playError) => SpotifyStore.updatePlayError(Some(playError))
+    };
+    Promise.resolved(response);
+  } else {
+    Promise.resolved(Ok());
   };
-  Promise.resolved();
 };
 
 module SpotifyStatePreview = {
@@ -211,7 +227,7 @@ module ControlButtons = {
     let buttonRef = React.useRef(Js.Nullable.null);
     let (showPreview, setShowPreview) = React.useState(() => false);
     let onMouseEnter = _ => {
-      SpotifyStore.fetchIfNeeded(~bufferMs=10000) |> ignore;
+      SpotifyStore.fetchIfNeeded(~bufferMs=5000) |> ignore;
       setShowPreview(_ => true);
     };
     let onMouseLeave = _ => setShowPreview(_ => false);
@@ -409,15 +425,29 @@ let make = (~roomId: string, ~showAbout) => {
     [|roomTrackId|],
   );
 
-  let (showControls, setShowControls) = React.useState(() => false);
   let amOnlyOne =
     switch (room) {
     | Some(room) => Js.Array.length(room.connections) == 1
     | None => false
     };
+  let (showControls, setShowControls) =
+    React.useState(() =>
+      amOnlyOne || Belt.Option.isNone(roomTrackWithMetadata)
+    );
+  React.useEffect1(
+    () => {
+      if (Belt.Option.isNone(roomTrackWithMetadata) && !showControls) {
+        setShowControls(_ => true);
+      };
+      None;
+    },
+    [|Belt.Option.isNone(roomTrackWithMetadata)|],
+  );
   if (amOnlyOne && !showControls && !isForeverRoom) {
     setShowControls(_ => true);
   };
+
+  let playError = SpotifyStore.useError();
 
   <>
     <HeaderBar
@@ -508,8 +538,13 @@ let make = (~roomId: string, ~showAbout) => {
                   ? <Button onClick={_ => setIsSyncing(_ => false)}>
                       {React.string("Stop Sync")}
                     </Button>
-                  : <Button onClick={_ => setIsSyncing(_ => true)}>
-                      {React.string("Start Sync")}
+                  : <Button
+                      onClick={_ => setIsSyncing(_ => true)}
+                      className={Cn.ifTrue(
+                        Styles.listenAlongButtonEmpty,
+                        Belt.Option.isNone(roomTrackWithMetadata),
+                      )}>
+                      {React.string("Listen Along")}
                     </Button>}
                {switch (roomTrackWithMetadata) {
                 | Some(roomTrackWithMetadata) =>
@@ -541,6 +576,13 @@ let make = (~roomId: string, ~showAbout) => {
                     </div>
                   : React.null}
              </div>
+             {switch (playError) {
+              | Some(SpotifyClient.SpotifyError(message)) =>
+                <div className=Styles.spotifyPlayErrorLabel>
+                  {React.string(message)}
+                </div>
+              | _ => React.null
+              }}
              {isForeverRoom
                 ? <div className=Styles.foreverRoomLabel>
                     {React.string(

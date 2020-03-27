@@ -112,6 +112,9 @@ let rec getCurrentTrack = () => {
   };
 };
 
+type playError =
+  | SpotifyError(string)
+  | NoAccessToken;
 let playAlbum = (albumId, offset, positionMs) => {
   switch (Belt.Option.map(UserStore.getUser(), user => user.accessToken)) {
   | Some(accessToken) =>
@@ -154,8 +157,16 @@ let playAlbum = (albumId, offset, positionMs) => {
         ),
       );
     let response = Result.getExn(response);
-    Promise.resolved();
-  | None => Promise.resolved()
+    switch (Fetch.Response.status(response)) {
+    | 204 => Promise.resolved(Ok())
+    | _ =>
+      let%Repromise.JsExn json = Fetch.Response.json(response);
+      open Json.Decode;
+      let message =
+        json |> field("error", json => json |> field("message", string));
+      Promise.resolved(Error(SpotifyError(message)));
+    };
+  | None => Promise.resolved(Error(NoAccessToken))
   };
 };
 

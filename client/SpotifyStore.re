@@ -6,30 +6,45 @@ type state = {
   currentTrack: option((SpotifyTypes.track, option(SpotifyTypes.context))),
   playerState,
   updateTimestamp: float,
+  error: option(SpotifyClient.playError),
 };
 type action =
   | UpdateState(
       option((SpotifyTypes.track, option(SpotifyTypes.context))),
       playerState,
       float,
-    );
+    )
+  | UpdatePlayError(option(SpotifyClient.playError));
 
 let api =
   Restorative.createStore(
-    {currentTrack: None, playerState: NotPlaying, updateTimestamp: 0.},
+    {
+      currentTrack: None,
+      playerState: NotPlaying,
+      updateTimestamp: 0.,
+      error: None,
+    },
     (state, action) => {
     switch (action) {
     | UpdateState(track, playerState, timestamp) => {
+        ...state,
         currentTrack: track,
         playerState,
         updateTimestamp: timestamp,
+      }
+    | UpdatePlayError(error) =>
+      switch (error, state.error) {
+      | (None, None) => state
+      | _ => {...state, error}
       }
     }
   });
 
 let useState = api.useStore;
+let useError = () => api.useStoreWithSelector(state => state.error, ());
 let updateState = (track, playerState, timestamp) =>
   api.dispatch(UpdateState(track, playerState, timestamp));
+let updatePlayError = error => api.dispatch(UpdatePlayError(error));
 
 let fetch = () => {
   let%Repromise result = SpotifyClient.getCurrentTrack();

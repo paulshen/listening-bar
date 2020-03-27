@@ -19,10 +19,12 @@ module Styles = {
     ]);
   let albumNameRow = style([marginBottom(px(8))]);
   let albumName = style([fontSize(px(28)), fontWeight(`num(500))]);
+  let trackArtists = style([wordBreak(breakAll)]);
   let trackArtist =
     style([
       fontSize(px(18)),
       marginRight(px(12)),
+      whiteSpace(nowrap),
       lastChild([marginRight(zero)]),
     ]);
   let playlist =
@@ -121,7 +123,7 @@ let make =
               {React.string(roomTrack.albumName)}
             </a>
           </div>
-          <div>
+          <div className=Styles.trackArtists>
             {roomTrack.artists
              |> Js.Array.map((artist: SocketMessage.roomTrackArtist) =>
                   <a

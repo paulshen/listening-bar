@@ -176,7 +176,8 @@ Middleware.from((next, req, res) => {
     Request.params(req)
     ->Js.Dict.unsafeGet("roomId")
     ->Js.Json.decodeString
-    ->Option.getExn;
+    ->Option.getExn
+    ->Utils.sanitizeRoomId;
   let roomId = Js.String.toLowerCase(roomId);
   let room = rooms->Js.Dict.get(roomId);
   switch (room) {
@@ -212,7 +213,7 @@ SocketServer.onConnect(
         switch (message) {
         | JoinRoom(roomId, sessionId) =>
           {
-            let roomId = Js.String.toLowerCase(roomId);
+            let roomId = Js.String.toLowerCase(Utils.sanitizeRoomId(roomId));
             socket->Socket.join(roomId) |> ignore;
             let%Repromise session: Promise.t(option(User.session)) =
               if (sessionId == "") {
@@ -316,7 +317,7 @@ SocketServer.onConnect(
           }
           |> ignore
         | PublishTrackState(sessionId, roomId, trackState) =>
-          let roomId = Js.String.toLowerCase(roomId);
+          let roomId = Js.String.toLowerCase(Utils.sanitizeRoomId(roomId));
           (
             switch (roomIdRef^) {
             | Some(storedRoomId) =>
@@ -410,7 +411,7 @@ SocketServer.onConnect(
           )
           |> ignore;
         | RemoveRecord(roomId) =>
-          let roomId = Js.String.toLowerCase(roomId);
+          let roomId = Js.String.toLowerCase(Utils.sanitizeRoomId(roomId));
           switch (roomIdRef^) {
           | Some(roomId) =>
             {
@@ -430,7 +431,7 @@ SocketServer.onConnect(
           | None => ()
           };
         | Logout(roomId) =>
-          let roomId = Js.String.toLowerCase(roomId);
+          let roomId = Js.String.toLowerCase(Utils.sanitizeRoomId(roomId));
           switch (Js.Dict.get(rooms, roomId)) {
           | Some(room) =>
             let updatedRoom = {

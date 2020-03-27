@@ -79,7 +79,8 @@ let make = (~roomId=?, ()) => {
       ->Js.Nullable.toOption
       ->Belt.Option.getExn
       ->Webapi.Dom.Element.unsafeAsHtmlElement
-      ->Webapi.Dom.HtmlElement.value;
+      ->Webapi.Dom.HtmlElement.value
+      ->Utils.sanitizeRoomId;
     ReasonReactRouter.push("/" ++ roomId);
   };
 

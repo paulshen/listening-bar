@@ -281,6 +281,9 @@ let make = (~roomId: string, ~showAbout) => {
   let user = UserStore.useUser();
   let room = RoomStore.useRoom(Js.String.toLowerCase(roomId));
   let (isSyncing, setIsSyncing) = React.useState(() => false);
+  let isForeverRoom =
+    Constants.foreverRoomIds
+    |> Js.Array.includes(Js.String.toLowerCase(roomId));
 
   if (Belt.Option.isNone(user) && isSyncing) {
     setIsSyncing(_ => false);
@@ -303,6 +306,7 @@ let make = (~roomId: string, ~showAbout) => {
                track.durationMs
              ),
           startTimestamp,
+          isForeverRoom,
         ),
         ((trackIndex, trackStartTimestamp)) => {
         (tracks[trackIndex], trackIndex, trackStartTimestamp)
@@ -336,9 +340,26 @@ let make = (~roomId: string, ~showAbout) => {
     },
     (roomRecord, isSyncing),
   );
+  // Handle a forever album repeating from the first track (roomRecord doesn't change)
+  React.useEffect1(
+    () => {
+      switch (isForeverRoom, isSyncing, roomTrackWithMetadata) {
+      | (true, true, Some((_, 0, _))) =>
+        syncSpotify(
+          ~roomTrackWithMetadata=Belt.Option.getExn(roomTrackWithMetadata),
+          ~force=true,
+        )
+        |> ignore
+      | _ => ()
+      };
+      None;
+    },
+    [|roomTrackWithMetadata|],
+  );
   React.useEffect1(
     () =>
       if (isSyncing) {
+        SpotifyClient.turnOffShuffle() |> ignore;
         SpotifyClient.turnOffRepeat() |> ignore;
         let interval =
           Js.Global.setInterval(
@@ -418,8 +439,8 @@ let make = (~roomId: string, ~showAbout) => {
       <div className=Styles.leftColumn>
         <RecordPlayer
           userId={
-            switch (roomRecord, roomTrackWithMetadata) {
-            | (Some((userId, _, _, _)), Some(_)) => Some(userId)
+            switch (isForeverRoom, roomRecord, roomTrackWithMetadata) {
+            | (false, Some((userId, _, _, _)), Some(_)) => Some(userId)
             | _ => None
             }
           }

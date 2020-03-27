@@ -35,7 +35,7 @@ let make = () => {
   );
   <div>
     {switch (url.path) {
-     | [roomId] => <Room roomId showAbout={url.hash == "about"} />
+     | [roomId] => <Room roomId showAbout={url.hash == "about"} key=roomId />
      | [] => <IndexPage />
      | _ => React.null
      }}

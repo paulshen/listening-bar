@@ -1,6 +1,11 @@
 open Belt;
 open Express;
 
+Dotenv.config();
+
+let env = Node.Process.process##env;
+let adminUserId = Js.Dict.unsafeGet(env, "ADMIN_USER_ID");
+
 [@bs.module]
 external bodyParser: {. [@bs.meth] "json": unit => Middleware.t} =
   "body-parser";
@@ -241,22 +246,26 @@ SocketServer.onConnect(
                 {id: roomId, connections: [||], record: None},
               );
             let hasRecordEnded =
-              switch (room.record) {
-              | Some((_userId, _albumId, serializedTracks, startTimestamp)) =>
-                let currentTrack =
-                  SocketMessage.getCurrentTrack(
-                    serializedTracks
-                    |> Js.Array.map(
-                         (
-                           (_, _, _, _, _, _, duration): SocketMessage.serializedRoomTrack,
-                         ) =>
-                         duration
-                       ),
-                    startTimestamp,
-                  );
-                Belt.Option.isNone(currentTrack);
-              | None => false
-              };
+              !(Constants.foreverRoomIds |> Js.Array.includes(roomId))
+              && (
+                switch (room.record) {
+                | Some((_userId, _albumId, serializedTracks, startTimestamp)) =>
+                  let currentTrack =
+                    SocketMessage.getCurrentTrack(
+                      serializedTracks
+                      |> Js.Array.map(
+                           (
+                             (_, _, _, _, _, _, duration): SocketMessage.serializedRoomTrack,
+                           ) =>
+                           duration
+                         ),
+                      startTimestamp,
+                      false,
+                    );
+                  Belt.Option.isNone(currentTrack);
+                | None => false
+                }
+              );
             let updatedRoom =
               if (hasRecordEnded) {
                 {...room, record: None};
@@ -322,8 +331,11 @@ SocketServer.onConnect(
                     getAccessTokenForUserId(client, userId)
                   )
                 ->Option.getWithDefault(Promise.resolved(None));
-              switch (accessToken) {
-              | Some(accessToken) =>
+              let hasPermission =
+                !(Constants.foreverRoomIds |> Js.Array.includes(roomId))
+                || userId == Some(adminUserId);
+              switch (hasPermission, accessToken) {
+              | (true, Some(accessToken)) =>
                 let%Repromise contextTracks =
                   Spotify.getContextTracks(
                     ~accessToken,
@@ -389,7 +401,7 @@ SocketServer.onConnect(
                     ),
                   );
                 Promise.resolved();
-              | None => Promise.resolved()
+              | _ => Promise.resolved()
               };
               Database.releaseClient(client) |> ignore;
               Promise.resolved();

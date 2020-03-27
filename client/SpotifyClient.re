@@ -179,6 +179,26 @@ let pausePlayer = () => {
   };
 };
 
+let turnOffShuffle = () => {
+  switch (Belt.Option.map(UserStore.getUser(), user => user.accessToken)) {
+  | Some(accessToken) =>
+    let%Repromise.Js _ =
+      Fetch.fetchWithInit(
+        "https://api.spotify.com/v1/me/player/shuffle?state=off",
+        Fetch.RequestInit.make(
+          ~method_=Put,
+          ~headers=
+            Fetch.HeadersInit.make({
+              "Authorization": "Bearer " ++ accessToken,
+            }),
+          (),
+        ),
+      );
+    Promise.resolved();
+  | None => Promise.resolved()
+  };
+};
+
 let turnOffRepeat = () => {
   switch (Belt.Option.map(UserStore.getUser(), user => user.accessToken)) {
   | Some(accessToken) =>

@@ -66,11 +66,24 @@ let deserializeConnection = ((id, userId)) => {
 };
 
 let getCurrentTrack =
-    (trackDurations: array(float), startTimestamp: float)
+    (trackDurations: array(float), startTimestamp: float, repeat: bool)
     : option((int, float)) => {
   let result = ref(None);
   let i = ref(0);
   let now = Js.Date.now();
+  let startTimestamp =
+    if (repeat) {
+      let totalAlbumDuration =
+        trackDurations
+        |> Js.Array.reduce((sum, duration) => sum +. duration, 0.);
+      startTimestamp
+      +. float_of_int(
+           Js.Math.floor((now -. startTimestamp) /. totalAlbumDuration),
+         )
+      *. totalAlbumDuration;
+    } else {
+      startTimestamp;
+    };
   let timestamp = ref(startTimestamp);
   while (Belt.Option.isNone(result^) && i^ < Js.Array.length(trackDurations)) {
     let durationMs = trackDurations[i^];

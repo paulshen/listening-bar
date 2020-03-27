@@ -5,4 +5,7 @@ let serverUrl =
   nodeEnv === Some("production")
     ? "https://api.listening.bar" : "http://localhost:3030";
 let clientUrl =
-  nodeEnv === Some("production") ? "https://listening.bar" : "http://localhost:8000";
+  nodeEnv === Some("production")
+    ? "https://listening.bar" : "http://localhost:8000";
+
+let foreverRoomIds = [|"kid-a", "hamilton", "blue-train"|];

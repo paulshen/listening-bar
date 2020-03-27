@@ -66,6 +66,15 @@ module Styles = {
       transition(~duration=200, "border-bottom-color"),
       focus([borderBottomColor(hex("FDFEC3c0"))]),
     ]);
+
+  let list =
+    style([
+      padding(zero),
+      listStyleType(none),
+      marginTop(px(-12)),
+      marginBottom(px(24)),
+    ]);
+  let listLink = style([color(hex("FDFEC3"))]);
 };
 
 [@react.component]
@@ -113,15 +122,9 @@ let make = (~roomId=?, ()) => {
         </div>
         {switch (roomId) {
          | Some(roomId) =>
-           <a
-             href={j|/$roomId|j}
-             onClick={e => {
-               ReactEvent.Mouse.preventDefault(e);
-               ReasonReactRouter.replace({j|/$roomId|j});
-             }}
-             className=Styles.returnToRoom>
+           <Link path={j|/$roomId|j} className=Styles.returnToRoom>
              {React.string("Return to room " ++ roomId)}
-           </a>
+           </Link>
          | None => React.null
          }}
       </form>
@@ -130,6 +133,28 @@ let make = (~roomId=?, ()) => {
            {|To change a room's album, play a song in your Spotify and click "Put On Album". This will play your song's album starting from the beginning of your track to the end of the album. Others can join your room with URL https://listening.bar/roomId|},
          )}
       </p>
+      <p>
+        {React.string(
+           {|Looking for a room to join? Try one of these infinite rooms.|},
+         )}
+      </p>
+      <ul className=Styles.list>
+        <li>
+          <Link path="/kid-a" className=Styles.listLink>
+            {React.string("listening.bar/kid-a")}
+          </Link>
+        </li>
+        <li>
+          <Link path="/blue-train" className=Styles.listLink>
+            {React.string("listening.bar/blue-train")}
+          </Link>
+        </li>
+        <li>
+          <Link path="/hamilton" className=Styles.listLink>
+            {React.string("listening.bar/hamilton")}
+          </Link>
+        </li>
+      </ul>
       <p>
         {React.string("Something not working or feature request?")}
         <br />

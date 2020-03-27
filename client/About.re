@@ -102,12 +102,12 @@ let make = (~roomId=?, ()) => {
       <h1 className=Styles.logo> {React.string("listening.bar")} </h1>
       <p>
         {React.string(
-           "This is a place for shared listening of Spotify albums. Inspired by modern listening bars, where people gather not to gossip but to listen and appreciate music together.",
+           "This is a place for shared listening of Spotify albums. Inspired by modern listening bars, where people gather to listen and appreciate music together.",
          )}
       </p>
       <p>
         {React.string(
-           "Create or join a room by ID. Login with your Spotify Premium account. Sync to listen with others.",
+           "Create or join a room with any ID. Login with your Spotify Premium account. Sync to listen with others.",
          )}
       </p>
       <form onSubmit=onRoomSubmit className=Styles.roomForm>
@@ -135,7 +135,7 @@ let make = (~roomId=?, ()) => {
       </p>
       <p>
         {React.string(
-           {|Looking for a room to join? Try one of these infinite rooms.|},
+           {|Or try one of these rooms that spin an album on repeat.|},
          )}
       </p>
       <ul className=Styles.list>

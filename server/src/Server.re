@@ -382,6 +382,7 @@ SocketServer.onConnect(
                 ->Socket.emit(
                     StartRecord(
                       roomId,
+                      Option.getExn(userId),
                       albumId,
                       serializedRoomTracks,
                       startTimestamp,

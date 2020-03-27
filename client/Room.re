@@ -65,7 +65,7 @@ module Styles = {
   let aboutLink = style([]);
   let about =
     style([
-      backgroundColor(rgba(62, 49, 43, 0.95)),
+      backgroundColor(rgba(62, 49, 43, 0.98)),
       position(absolute),
       top(zero),
       left(zero),
@@ -279,7 +279,7 @@ module ControlButtons = {
 let make = (~roomId: string, ~showAbout) => {
   let hasFetchedUser = UserStore.useHasFetched();
   let user = UserStore.useUser();
-  let room = RoomStore.useRoom(roomId);
+  let room = RoomStore.useRoom(Js.String.toLowerCase(roomId));
   let (isSyncing, setIsSyncing) = React.useState(() => false);
 
   if (Belt.Option.isNone(user) && isSyncing) {

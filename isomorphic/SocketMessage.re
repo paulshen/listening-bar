@@ -102,5 +102,5 @@ type serverToClient =
   | NewConnection(string, (string, string))
   | LostConnection(string, string)
   | LogoutConnection(string, string)
-  | StartRecord(string, string, array(serializedRoomTrack), float)
+  | StartRecord(string, string, string, array(serializedRoomTrack), float)
   | RemoveRecord(string);

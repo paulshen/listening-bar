@@ -49,10 +49,16 @@ let getSocket = () => {
               },
           });
           RoomStore.updateCurrentRoomId(Some(roomId));
-        | StartRecord(roomId, albumId, serializedTracks, startTimestamp) =>
+        | StartRecord(
+            roomId,
+            userId,
+            albumId,
+            serializedTracks,
+            startTimestamp,
+          ) =>
           RoomStore.startRecord(
             roomId,
-            Belt.Option.getExn(UserStore.getUser()).id,
+            userId,
             albumId,
             serializedTracks
             |> Js.Array.map(SocketMessage.deserializeRoomTrack),

@@ -92,7 +92,7 @@ let make = (~roomId=?, ()) => {
       <h1 className=Styles.logo> {React.string("listening.bar")} </h1>
       <p>
         {React.string(
-           "This is a place for shared listening of Spotify albums. Inspired by modern listening bars, where people gather not to gossip but to listen and appreciate sounds together.",
+           "This is a place for shared listening of Spotify albums. Inspired by modern listening bars, where people gather not to gossip but to listen and appreciate music together.",
          )}
       </p>
       <p>
@@ -132,7 +132,7 @@ let make = (~roomId=?, ()) => {
       <p>
         {React.string("Something not working or feature request?")}
         <br />
-        {React.string("Tweet")}
+        {React.string("Tweet ")}
         <a href="https://twitter.com/_paulshen" target="_blank">
           {React.string("@_paulshen")}
         </a>

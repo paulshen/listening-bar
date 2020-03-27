@@ -18,7 +18,7 @@ module Styles = {
       textTransform(uppercase),
     ]);
   let albumNameRow = style([marginBottom(px(8))]);
-  let albumName = style([fontSize(px(24)), fontWeight(`num(500))]);
+  let albumName = style([fontSize(px(28)), fontWeight(`num(500))]);
   let trackArtist =
     style([
       fontSize(px(18)),
@@ -154,24 +154,17 @@ let make =
   | None =>
     <div className=Styles.root>
       <div>
-        <div
-          className={Cn.make([
-            Styles.albumImage,
-            Styles.albumImagePlaceholder,
-          ])}
-        />
-        <div className=Styles.albumInfo>
-          <div className=Styles.currentSpinning>
-            {React.string("Currently Quiet")}
-          </div>
-        </div>
-      </div>
-      <div className=Styles.playlist>
         <img
           src="/assets/drawing.png"
           className=Styles.noRecordPlaylistImage
         />
+        <div className=Styles.albumInfo>
+          <div className=Styles.currentSpinning>
+            {React.string("It's quiet in here")}
+          </div>
+        </div>
       </div>
+      <div className=Styles.playlist />
     </div>
   };
 };

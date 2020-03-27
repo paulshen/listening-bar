@@ -184,7 +184,7 @@ let turnOffShuffle = () => {
   | Some(accessToken) =>
     let%Repromise.Js _ =
       Fetch.fetchWithInit(
-        "https://api.spotify.com/v1/me/player/shuffle?state=off",
+        "https://api.spotify.com/v1/me/player/shuffle?state=false",
         Fetch.RequestInit.make(
           ~method_=Put,
           ~headers=

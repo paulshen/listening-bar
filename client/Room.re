@@ -601,7 +601,7 @@ let make = (~roomId: string, ~showAbout) => {
          | (true, None) =>
            <div>
              <div className=Styles.syncStatus>
-               {React.string("Login to sync your Spotify and change records.")}
+               {React.string("Login to listen along and change records.")}
              </div>
              <Button
                onClick={e => {
@@ -609,7 +609,7 @@ let make = (~roomId: string, ~showAbout) => {
                  API.clientLogin();
                }}
                className=Styles.spotifyButton>
-               {React.string("Login with Spotify")}
+               {React.string("Login with Spotify Premium")}
              </Button>
            </div>
          }}

@@ -141,7 +141,7 @@ let deleteSession = (client, sessionId: string) => {
 
 type dbRoomRow = {
   id: string,
-  record: Js.Json.t,
+  record: Js.Null.t(Js.Json.t),
 };
 let getRoom = (client, roomId: string) => {
   open BsPostgres.Client.Promise;
@@ -156,7 +156,9 @@ let getRoom = (client, roomId: string) => {
        );
   Promise.resolved(
     Option.map(result##rows[0], (row: dbRoomRow) =>
-      ({id: row.id, record: Obj.magic(row.record)}: Room.t)
+      (
+        {id: row.id, record: Obj.magic(Js.Null.toOption(row.record))}: Room.t
+      )
     ),
   );
 };

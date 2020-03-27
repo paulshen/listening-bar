@@ -348,10 +348,12 @@ let make = (~roomId: string, ~showAbout) => {
     (roomRecord, isSyncing),
   );
   // Handle a forever album repeating from the first track (roomRecord doesn't change)
+  let roomTrackOffset =
+    Belt.Option.map(roomTrackWithMetadata, ((_, index, _)) => index);
   React.useEffect1(
     () => {
-      switch (isForeverRoom, isSyncing, roomTrackWithMetadata) {
-      | (true, true, Some((_, 0, _))) =>
+      switch (isForeverRoom, isSyncing, roomTrackOffset) {
+      | (true, true, Some(0)) =>
         syncSpotify(
           ~roomTrackWithMetadata=Belt.Option.getExn(roomTrackWithMetadata),
           ~force=true,
@@ -361,7 +363,7 @@ let make = (~roomId: string, ~showAbout) => {
       };
       None;
     },
-    [|roomTrackWithMetadata|],
+    [|roomTrackOffset|],
   );
   React.useEffect1(
     () =>

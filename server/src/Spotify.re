@@ -31,7 +31,7 @@ let getUserId = accessToken => {
   ->Promise.resolved;
 };
 
-let getToken = (client, code) => {
+let getToken = code => {
   let formData = [|
     (
       "client_id",
@@ -86,14 +86,17 @@ let getToken = (client, code) => {
   let tokenExpireTime = Js.Date.now() +. expiresIn;
 
   let%Repromise userId = getUserId(accessToken);
-  let%Repromise _ =
-    Database.updateUser(
-      client,
-      {id: userId, accessToken, refreshToken, tokenExpireTime},
-    );
   let sessionId = uuidV4();
-  let%Repromise _ = Database.addSession(client, {id: sessionId, userId});
-
+  let%Repromise client = Database.getClient();
+  let%Repromise _ =
+    Promise.all2(
+      Database.updateUser(
+        client,
+        {id: userId, accessToken, refreshToken, tokenExpireTime},
+      ),
+      Database.addSession(client, {id: sessionId, userId}),
+    );
+  Database.releaseClient(client) |> ignore;
   Promise.resolved((sessionId, accessToken, userId));
 };
 

@@ -50,9 +50,7 @@ promiseMiddleware((next, req, res) => {
     ->Js.Dict.unsafeGet("code")
     ->Js.Json.decodeString
     ->Option.getExn;
-  let%Repromise client = Database.getClient();
-  let%Repromise (sessionId, accessToken, userId) =
-    Spotify.getToken(client, code);
+  let%Repromise (sessionId, accessToken, userId) = Spotify.getToken(code);
   let responseJson =
     Js.Json.object_(
       Js.Dict.fromArray([|
@@ -61,7 +59,6 @@ promiseMiddleware((next, req, res) => {
         ("userId", Js.Json.string(userId)),
       |]),
     );
-  Database.releaseClient(client) |> ignore;
   res |> Response.sendJson(responseJson) |> Promise.resolved;
 });
 
@@ -79,19 +76,20 @@ promiseMiddleware((next, req, res) => {
   res |> Response.sendStatus(Ok) |> Promise.resolved;
 });
 
-let getAccessTokenForUserId = (client, userId) => {
-  let%Repromise user = Database.getUser(client, userId);
+let getAccessTokenForUserOption = user => {
   let%Repromise accessToken =
     switch ((user: option(User.t))) {
     | Some(user) =>
       if (user.tokenExpireTime < Js.Date.now()) {
         let%Repromise (accessToken, tokenExpireTime) =
           Spotify.refreshToken(user.refreshToken);
+        let%Repromise client = Database.getClient();
         let%Repromise _ =
           Database.updateUser(
             client,
-            {...user, id: userId, accessToken, tokenExpireTime},
+            {...user, id: user.id, accessToken, tokenExpireTime},
           );
+        Database.releaseClient(client) |> ignore;
         Promise.resolved(Some(accessToken));
       } else {
         Promise.resolved(Some(user.accessToken));
@@ -131,8 +129,9 @@ Router.getWithMany(apiRouter, ~path="/user") @@
     let client = Obj.magic(Option.getExn(getProperty(req, "client")));
     let userId =
       Obj.magic(Option.getExn(getProperty(req, "session")))##userId;
-    let%Repromise accessToken = getAccessTokenForUserId(client, userId);
+    let%Repromise user = Database.getUser(client, userId);
     Database.releaseClient(client) |> ignore;
+    let%Repromise accessToken = getAccessTokenForUserOption(user);
     let responseJson =
       Js.Json.object_(
         Js.Dict.fromArray([|
@@ -336,12 +335,13 @@ SocketServer.onConnect(
                   Database.getRoom(client, roomId),
                 );
               let userId = Option.map(session, session => session.userId);
-              let%Repromise accessToken =
-                userId
-                ->Option.map(userId =>
-                    getAccessTokenForUserId(client, userId)
-                  )
-                ->Option.getWithDefault(Promise.resolved(None));
+              let%Repromise user =
+                switch (userId) {
+                | Some(userId) => Database.getUser(client, userId)
+                | None => Promise.resolved(None)
+                };
+              Database.releaseClient(client) |> ignore;
+              let%Repromise accessToken = getAccessTokenForUserOption(user);
               let hasPermission =
                 !(Constants.foreverRoomIds |> Js.Array.includes(roomId))
                 || userId == Some(adminUserId);
@@ -383,21 +383,27 @@ SocketServer.onConnect(
                   tracks |> Js.Array.map(SocketMessage.serializeSpotifyTrack);
 
                 // TODO: check roomId == storedRoomId
-                switch (room) {
-                | Some(room) =>
-                  let updatedRoom = {
-                    ...room,
-                    record:
-                      Some((
-                        Option.getExn(userId),
-                        albumId,
-                        serializedRoomTracks,
-                        startTimestamp,
-                      )),
+                {
+                  switch (room) {
+                  | Some(room) =>
+                    let updatedRoom = {
+                      ...room,
+                      record:
+                        Some((
+                          Option.getExn(userId),
+                          albumId,
+                          serializedRoomTracks,
+                          startTimestamp,
+                        )),
+                    };
+                    let%Repromise client = Database.getClient();
+                    let%Repromise _ =
+                      Database.updateRoom(client, updatedRoom);
+                    Database.releaseClient(client);
+                  | None => Promise.resolved()
                   };
-                  Database.updateRoom(client, updatedRoom) |> ignore;
-                | None => ()
-                };
+                }
+                |> ignore;
 
                 io
                 ->inRoom(roomId)
@@ -413,7 +419,6 @@ SocketServer.onConnect(
                 Promise.resolved();
               | _ => Promise.resolved()
               };
-              Database.releaseClient(client) |> ignore;
               Promise.resolved();
             | None => Promise.resolved()
             }

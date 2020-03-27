@@ -615,15 +615,29 @@ let make = (~roomId: string, ~showAbout) => {
          }}
         {switch (room) {
          | Some(room) =>
+           let seenUserIds = [||];
+           let connections =
+             room.connections
+             |> Js.Array.filter((connection: SocketMessage.connection) => {
+                  switch (connection.userId) {
+                  | "" => true
+                  | userId =>
+                    if (seenUserIds |> Js.Array.includes(userId)) {
+                      false;
+                    } else {
+                      seenUserIds |> Js.Array.push(userId) |> ignore;
+                      true;
+                    }
+                  }
+                });
            <div>
              <div className=Styles.connectedLabel>
                {React.string(
-                  string_of_int(Js.Array.length(room.connections))
-                  ++ " in room",
+                  string_of_int(Js.Array.length(connections)) ++ " in room",
                 )}
              </div>
              <div>
-               {room.connections
+               {connections
                 |> Js.Array.map((connection: SocketMessage.connection) =>
                      <div
                        className=Styles.connectedUsername key={connection.id}>
@@ -637,7 +651,7 @@ let make = (~roomId: string, ~showAbout) => {
                    )
                 |> React.array}
              </div>
-           </div>
+           </div>;
          | None => React.null
          }}
       </div>

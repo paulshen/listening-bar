@@ -54,6 +54,13 @@ module Styles = {
       marginLeft(px(16)),
     ]);
   let controlToggle = style([flexGrow(1.), textAlign(`right)]);
+  let foreverRoomLabel =
+    style([
+      borderTop(px(1), solid, rgba(253, 254, 195, 0.2)),
+      marginTop(px(-24)),
+      marginBottom(px(32)),
+      paddingTop(px(8)),
+    ]);
   let connectedLabel =
     style([
       marginBottom(px(4)),
@@ -406,7 +413,7 @@ let make = (~roomId: string, ~showAbout) => {
     | Some(room) => Js.Array.length(room.connections) == 1
     | None => false
     };
-  if (amOnlyOne && !showControls) {
+  if (amOnlyOne && !showControls && !isForeverRoom) {
     setShowControls(_ => true);
   };
 
@@ -501,7 +508,7 @@ let make = (~roomId: string, ~showAbout) => {
                   </a>
                 | None => React.null
                 }}
-               {!amOnlyOne
+               {!isForeverRoom && !amOnlyOne
                   ? <div className=Styles.controlToggle>
                       <a
                         href="#"
@@ -517,14 +524,20 @@ let make = (~roomId: string, ~showAbout) => {
                     </div>
                   : React.null}
              </div>
-             {showControls
-                ? <ControlButtons
-                    roomId
-                    hasRecordPlaying={Belt.Option.isSome(
-                      roomTrackWithMetadata,
-                    )}
-                  />
-                : React.null}
+             {isForeverRoom
+                ? <div className=Styles.foreverRoomLabel>
+                    {React.string(
+                       "This is a special room looping the same album.",
+                     )}
+                  </div>
+                : showControls
+                    ? <ControlButtons
+                        roomId
+                        hasRecordPlaying={Belt.Option.isSome(
+                          roomTrackWithMetadata,
+                        )}
+                      />
+                    : React.null}
            </div>
          | (true, None) =>
            <div>

@@ -446,33 +446,48 @@ let make = (~roomId: string, ~showAbout) => {
     />
     <div className=Styles.root>
       <div className=Styles.leftColumn>
-        <RecordPlayer
-          userId={
-            switch (isForeverRoom, roomRecord, roomTrackWithMetadata) {
-            | (false, Some((userId, _, _, _)), Some(_)) => Some(userId)
-            | _ => None
-            }
-          }
-          startTimestamp={
-            switch (roomRecord, roomTrackWithMetadata) {
-            | (Some((_, _, _, startTimestamp)), Some(_)) =>
-              Some(startTimestamp)
-            | _ => None
-            }
-          }
-          totalDuration={Belt.Option.map(
-            roomRecord,
-            ((_, _, tracks, _)) => {
-              let duration = ref(0.);
-              tracks
-              |> Js.Array.forEach((track: SocketMessage.roomTrack) => {
-                   duration := duration^ +. track.durationMs
-                 });
-              duration^;
-            },
-          )}
-          className=Styles.recordPlayer
-        />
+        {let totalDuration =
+           Belt.Option.map(
+             roomRecord,
+             ((_, _, tracks, _)) => {
+               let duration = ref(0.);
+               tracks
+               |> Js.Array.forEach((track: SocketMessage.roomTrack) => {
+                    duration := duration^ +. track.durationMs
+                  });
+               duration^;
+             },
+           );
+         <RecordPlayer
+           userId={
+             switch (isForeverRoom, roomRecord, roomTrackWithMetadata) {
+             | (false, Some((userId, _, _, _)), Some(_)) => Some(userId)
+             | _ => None
+             }
+           }
+           startTimestamp={
+             switch (roomRecord, roomTrackWithMetadata) {
+             | (Some((_, _, _, startTimestamp)), Some(_)) =>
+               let totalDuration = Belt.Option.getExn(totalDuration);
+               Some(
+                 startTimestamp
+                 +. (
+                   isForeverRoom
+                     ? float_of_int(
+                         Js.Math.floor(
+                           (Js.Date.now() -. startTimestamp) /. totalDuration,
+                         ),
+                       )
+                       *. totalDuration
+                     : 0.
+                 ),
+               );
+             | _ => None
+             }
+           }
+           totalDuration
+           className=Styles.recordPlayer
+         />}
         <div className=Styles.smallLabel> {React.string("Room")} </div>
         <div className=Styles.roomName> {React.string(roomId)} </div>
         {switch (hasFetchedUser, user) {

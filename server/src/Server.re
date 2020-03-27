@@ -201,6 +201,24 @@ external inRoom:
   (BsSocket.Server.serverT, BsSocket.Server.room) => BsSocket.Server.socketT =
   "in";
 
+let removeRoomConnection = (socket, roomId, socketId) => {
+  SocketServer.(
+    switch (Js.Dict.get(roomConnections, roomId)) {
+    | Some(connections) =>
+      socket
+      ->SocketServer.Socket.to_(roomId)
+      ->Socket.emit(LostConnection(roomId, socketId));
+      let updatedConnections =
+        connections
+        |> Js.Array.filter((connection: SocketMessage.connection) =>
+             connection.id != socketId
+           );
+      roomConnections->Js.Dict.set(roomId, updatedConnections);
+    | None => ()
+    }
+  );
+};
+
 SocketServer.onConnect(
   io,
   socket => {
@@ -214,6 +232,11 @@ SocketServer.onConnect(
         switch (message) {
         | JoinRoom(roomId, sessionId) =>
           {
+            switch (roomIdRef^) {
+            | Some(roomId) => removeRoomConnection(socket, roomId, socketId)
+            | None => ()
+            };
+
             let roomId = Js.String.toLowerCase(Utils.sanitizeRoomId(roomId));
             socket->Socket.join(roomId) |> ignore;
             let%Repromise client = Database.getClient();
@@ -469,20 +492,7 @@ SocketServer.onConnect(
 
     socket->Socket.onDisconnect(() => {
       switch (roomIdRef^) {
-      | Some(roomId) =>
-        switch (Js.Dict.get(roomConnections, roomId)) {
-        | Some(connections) =>
-          socket
-          ->SocketServer.Socket.to_(roomId)
-          ->Socket.emit(LostConnection(roomId, socketId));
-          let updatedConnections =
-            connections
-            |> Js.Array.filter((connection: SocketMessage.connection) =>
-                 connection.id != socketId
-               );
-          roomConnections->Js.Dict.set(roomId, updatedConnections);
-        | None => ()
-        }
+      | Some(roomId) => removeRoomConnection(socket, roomId, socketId)
       | None => ()
       }
     });

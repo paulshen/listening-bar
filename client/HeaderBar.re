@@ -6,6 +6,10 @@ module Styles = {
       fontSize(px(14)),
       justifyContent(spaceBetween),
       padding2(~v=px(16), ~h=px(32)),
+      media(
+        "(max-width: 480px)",
+        [paddingLeft(px(16)), paddingRight(px(16))],
+      ),
     ]);
   let title =
     style([textTransform(uppercase), letterSpacing(pxFloat(1.))]);

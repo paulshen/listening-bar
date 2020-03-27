@@ -314,6 +314,7 @@ let make = (~roomId: string, ~showAbout) => {
   };
 
   React.useEffect0(() => {
+    Webapi.Dom.(document->Document.documentElement->Element.setScrollTop(0.));
     ClientSocket.connectToRoom(roomId, UserStore.getSessionId());
     None;
   });

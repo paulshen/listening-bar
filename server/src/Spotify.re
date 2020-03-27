@@ -81,7 +81,8 @@ let getToken = (client, code) => {
     jsonDict
     ->Js.Dict.unsafeGet("expires_in")
     ->Js.Json.decodeNumber
-    ->Option.getExn;
+    ->Option.getExn
+    *. 1000.;
   let tokenExpireTime = Js.Date.now() +. expiresIn;
 
   let%Repromise userId = getUserId(accessToken);
@@ -141,6 +142,7 @@ let refreshToken = refreshToken => {
     ->Js.Dict.unsafeGet("expires_in")
     ->Js.Json.decodeNumber
     ->Option.getExn
+    *. 1000.
     +. Js.Date.now();
 
   Promise.resolved((accessToken, tokenExpireTime));

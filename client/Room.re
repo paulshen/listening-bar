@@ -406,16 +406,23 @@ let make = (~roomId: string, ~showAbout) => {
     },
     [|activeTrackWithMetadata|],
   );
-  React.useEffect1(
+  let timeLoadedRoomRef = React.useRef(None);
+  if (Belt.Option.isNone(React.Ref.current(timeLoadedRoomRef))) {
+    React.Ref.setCurrent(timeLoadedRoomRef, Some(Js.Date.now()));
+  };
+  let hasActiveTrack = Belt.Option.isSome(activeTrackWithMetadata);
+  React.useEffect2(
     () => {
       if (isLoggedIn
           && !isSyncing
-          && Belt.Option.isSome(activeTrackWithMetadata)) {
+          && hasActiveTrack
+          && Js.Date.now()
+          -. Belt.Option.getExn(React.Ref.current(timeLoadedRoomRef)) < 3000.) {
         setIsSyncing(_ => true);
       };
       None;
     },
-    [|isLoggedIn|],
+    (isLoggedIn, hasActiveTrack),
   );
   let onSyncError = _ => {
     setIsSyncing(_ => false);

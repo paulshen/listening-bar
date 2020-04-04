@@ -1,21 +1,33 @@
 # Listening Bar
 
+## Installation
+
+```sh
+yarn
+(cd server && yarn)
+cp .env.sample .env
+```
+
+Replace contents of `.env` with your values.
+
 ## Run
 
-### Client
+#### Client
 
-```
+```sh
 # Build BuckleScript
-yarn start
+yarn build
 # Serve dev client on localhost:8000
 yarn client
 ```
 
-### Server
+#### Server
 
-```
+```sh
 # Build BuckleScript
-cd server && yarn start
+(cd server && yarn build)
 # Run server on localhost:3030
-yarn server # from root
+yarn server
 ```
+
+Replace `yarn build` with `yarn start` to run BuckleScript in watch mode.

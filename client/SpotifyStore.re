@@ -7,6 +7,8 @@ type state = {
   playerState,
   updateTimestamp: float,
   error: option(SpotifyClient.playError),
+  availableDevices: option(array(SpotifyClient.device)),
+  deviceId: option(string),
 };
 type action =
   | UpdateState(
@@ -14,7 +16,9 @@ type action =
       playerState,
       float,
     )
-  | UpdatePlayError(option(SpotifyClient.playError));
+  | UpdatePlayError(option(SpotifyClient.playError))
+  | UpdateAvailableDevices(array(SpotifyClient.device))
+  | SetDeviceId(string);
 
 let api =
   Restorative.createStore(
@@ -23,6 +27,8 @@ let api =
       playerState: NotPlaying,
       updateTimestamp: 0.,
       error: None,
+      availableDevices: None,
+      deviceId: None,
     },
     (state, action) => {
     switch (action) {
@@ -32,6 +38,11 @@ let api =
         playerState,
         updateTimestamp: timestamp,
       }
+    | UpdateAvailableDevices(availableDevices) => {
+        ...state,
+        availableDevices: Some(availableDevices),
+      }
+    | SetDeviceId(deviceId) => {...state, deviceId: Some(deviceId)}
     | UpdatePlayError(error) =>
       switch (error, state.error) {
       | (None, None) => state
@@ -42,9 +53,16 @@ let api =
 
 let useState = api.useStore;
 let useError = () => api.useStoreWithSelector(state => state.error, ());
+let useAvailableDevices = () =>
+  api.useStoreWithSelector(state => state.availableDevices, ());
+let useDeviceId = () => api.useStoreWithSelector(state => state.deviceId, ());
+let getDeviceId = () => api.getState().deviceId;
 let updateState = (track, playerState, timestamp) =>
   api.dispatch(UpdateState(track, playerState, timestamp));
 let updatePlayError = error => api.dispatch(UpdatePlayError(error));
+let updateAvailableDevices = devices =>
+  api.dispatch(UpdateAvailableDevices(devices));
+let setDeviceId = deviceId => api.dispatch(SetDeviceId(deviceId));
 
 let fetch = () => {
   let%Repromise result = SpotifyClient.getCurrentTrack();

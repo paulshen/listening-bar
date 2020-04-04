@@ -1,5 +1,10 @@
 open Belt;
 
+type device = {
+  id: string,
+  name: string,
+};
+
 let rec getCurrentTrack = () => {
   switch (Belt.Option.map(UserStore.getUser(), user => user.accessToken)) {
   | Some(accessToken) =>
@@ -112,15 +117,63 @@ let rec getCurrentTrack = () => {
   };
 };
 
-type playError =
-  | SpotifyError(string)
-  | NoAccessToken;
-let playAlbum = (albumId, offset, positionMs) => {
+let getAvailableDevices = () => {
   switch (Belt.Option.map(UserStore.getUser(), user => user.accessToken)) {
   | Some(accessToken) =>
     let%Repromise.Js response =
       Fetch.fetchWithInit(
-        "https://api.spotify.com/v1/me/player/play",
+        "https://api.spotify.com/v1/me/player/devices",
+        Fetch.RequestInit.make(
+          ~method_=Get,
+          ~headers=
+            Fetch.HeadersInit.make({
+              "Authorization": "Bearer " ++ accessToken,
+            }),
+          (),
+        ),
+      );
+    let response = Result.getExn(response);
+    switch (Fetch.Response.status(response)) {
+    | 200 =>
+      let%Repromise.JsExn json = Fetch.Response.json(response);
+      open Json.Decode;
+      let devices =
+        json
+        |> field(
+             "devices",
+             array((json) =>
+               (
+                 {
+                   id: json |> field("id", string),
+                   name: json |> field("name", string),
+                 }: device
+               )
+             ),
+           );
+      Promise.resolved(Ok(devices));
+    | _ => Promise.resolved(Error())
+    };
+  | None => Promise.resolved(Error())
+  };
+};
+
+type playError =
+  | SpotifyError(int, string)
+  | SelectDevice(array(device))
+  | NoAvailableDevice
+  | NoAccessToken;
+let rec playAlbum = (albumId, offset, positionMs, ~deviceId) => {
+  switch (Belt.Option.map(UserStore.getUser(), user => user.accessToken)) {
+  | Some(accessToken) =>
+    let url = "https://api.spotify.com/v1/me/player/play";
+    let url =
+      switch (deviceId) {
+      | Some(deviceId) => url ++ "?device_id=" ++ deviceId
+      | None => url
+      };
+    let%Repromise.Js response =
+      Fetch.fetchWithInit(
+        url,
         Fetch.RequestInit.make(
           ~method_=Put,
           ~body=
@@ -159,12 +212,29 @@ let playAlbum = (albumId, offset, positionMs) => {
     let response = Result.getExn(response);
     switch (Fetch.Response.status(response)) {
     | 204 => Promise.resolved(Ok())
-    | _ =>
+    | 404 =>
+      let%Repromise devicesResult = getAvailableDevices();
+      switch (devicesResult) {
+      | Ok(devices) =>
+        switch (Js.Array.length(devices)) {
+        | 0 => Promise.resolved(Error(NoAvailableDevice))
+        | 1 =>
+          playAlbum(
+            albumId,
+            offset,
+            positionMs,
+            ~deviceId=Some(Option.getExn(devices[0]).id),
+          )
+        | _ => Promise.resolved(Error(SelectDevice(devices)))
+        }
+      | Error () => Promise.resolved(Error(NoAvailableDevice))
+      };
+    | statusCode =>
       let%Repromise.JsExn json = Fetch.Response.json(response);
       open Json.Decode;
       let message =
         json |> field("error", json => json |> field("message", string));
-      Promise.resolved(Error(SpotifyError(message)));
+      Promise.resolved(Error(SpotifyError(statusCode, message)));
     };
   | None => Promise.resolved(Error(NoAccessToken))
   };

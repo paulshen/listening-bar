@@ -55,14 +55,14 @@ module Styles = {
       marginLeft(px(16)),
     ]);
   let controlToggle = style([flexGrow(1.), textAlign(`right)]);
-  let spotifyPlayErrorLabel =
+  let spotifyPlayError =
     style([
-      color(hex("ff7c7c")),
-      fontSize(px(12)),
       marginTop(px(-24)),
       marginBottom(px(32)),
       paddingTop(px(4)),
     ]);
+  let spotifyPlayErrorLabel =
+    style([color(hex("ff7c7c")), fontSize(px(12))]);
   let foreverRoomLabel =
     style([
       borderTop(px(1), solid, rgba(253, 254, 195, 0.2)),
@@ -95,7 +95,11 @@ let syncBuffer = 3000.;
 let syncInterval = 30000;
 
 let syncSpotify =
-    (~roomTrackWithMetadata: (SocketMessage.roomTrack, int, float), ~force) => {
+    (
+      ~roomTrackWithMetadata: (SocketMessage.roomTrack, int, float),
+      ~onError,
+      ~force,
+    ) => {
   let (track, index, startTimestamp) = roomTrackWithMetadata;
   let%Repromise skipSyncing =
     if (force) {
@@ -124,14 +128,64 @@ let syncSpotify =
   if (!skipSyncing) {
     let positionMs = Js.Date.now() -. startTimestamp;
     let%Repromise response =
-      SpotifyClient.playAlbum(track.albumId, index, positionMs);
+      SpotifyClient.playAlbum(
+        track.albumId,
+        index,
+        positionMs,
+        ~deviceId=SpotifyStore.getDeviceId(),
+      );
     switch (response) {
     | Ok () => SpotifyStore.updatePlayError(None)
-    | Error(playError) => SpotifyStore.updatePlayError(Some(playError))
+    | Error(playError) =>
+      onError(playError);
+      SpotifyStore.updatePlayError(Some(playError));
     };
     Promise.resolved(response);
   } else {
     Promise.resolved(Ok());
+  };
+};
+
+module SpotifyChooseDevice = {
+  module Styles = {
+    open Css;
+    let label =
+      style([
+        color(hex("ff7c7c")),
+        fontSize(px(12)),
+        marginBottom(px(2)),
+      ]);
+    let selected =
+      style([fontWeight(`num(600)), textDecoration(underline)]);
+  };
+
+  [@react.component]
+  let make = (~availableDevices) => {
+    let deviceId = SpotifyStore.useDeviceId();
+    let onDeviceClick = (e, deviceId) => {
+      SpotifyStore.setDeviceId(deviceId);
+      ReactEvent.Mouse.preventDefault(e);
+    };
+    <div>
+      <div className=Styles.label>
+        {React.string("Select an available device and try again")}
+      </div>
+      {availableDevices
+       |> Js.Array.map((device: SpotifyClient.device) =>
+            <div key={device.id}>
+              <a
+                href="#"
+                onClick={e => onDeviceClick(e, device.id)}
+                className={Cn.ifTrue(
+                  Styles.selected,
+                  deviceId == Some(device.id),
+                )}>
+                {React.string(device.name)}
+              </a>
+            </div>
+          )
+       |> React.array}
+    </div>;
   };
 };
 
@@ -345,6 +399,9 @@ let make = (~roomId: string, ~showAbout) => {
     },
     [|roomTrackWithMetadata|],
   );
+  let onSyncError = _ => {
+    setIsSyncing(_ => false);
+  };
   React.useEffect2(
     () => {
       switch (roomRecord) {
@@ -352,6 +409,7 @@ let make = (~roomId: string, ~showAbout) => {
         if (isSyncing) {
           syncSpotify(
             ~roomTrackWithMetadata=Belt.Option.getExn(roomTrackWithMetadata),
+            ~onError=onSyncError,
             ~force=true,
           )
           |> ignore;
@@ -374,6 +432,7 @@ let make = (~roomId: string, ~showAbout) => {
       | (true, true, Some(0)) =>
         syncSpotify(
           ~roomTrackWithMetadata=Belt.Option.getExn(roomTrackWithMetadata),
+          ~onError=onSyncError,
           ~force=true,
         )
         |> ignore
@@ -393,7 +452,12 @@ let make = (~roomId: string, ~showAbout) => {
             () => {
               switch (React.Ref.current(roomTrackWithMetadataRef)) {
               | Some(roomTrackWithMetadata) =>
-                syncSpotify(~roomTrackWithMetadata, ~force=false) |> ignore
+                syncSpotify(
+                  ~roomTrackWithMetadata,
+                  ~onError=onSyncError,
+                  ~force=false,
+                )
+                |> ignore
               | None => ()
               }
             },
@@ -554,7 +618,11 @@ let make = (~roomId: string, ~showAbout) => {
                     href="#"
                     onClick={e => {
                       ReactEvent.Mouse.preventDefault(e);
-                      syncSpotify(~roomTrackWithMetadata, ~force=false)
+                      syncSpotify(
+                        ~roomTrackWithMetadata,
+                        ~onError=onSyncError,
+                        ~force=false,
+                      )
                       |> ignore;
                     }}
                     className=Styles.smallLink>
@@ -579,9 +647,21 @@ let make = (~roomId: string, ~showAbout) => {
                   : React.null}
              </div>
              {switch (playError) {
-              | Some(SpotifyClient.SpotifyError(message)) =>
-                <div className=Styles.spotifyPlayErrorLabel>
-                  {React.string(message)}
+              | Some(SpotifyClient.SelectDevice(availableDevices)) =>
+                <div className=Styles.spotifyPlayError>
+                  <SpotifyChooseDevice availableDevices />
+                </div>
+              | Some(SpotifyClient.NoAvailableDevice) =>
+                <div className=Styles.spotifyPlayError>
+                  <div className=Styles.spotifyPlayErrorLabel>
+                    {React.string("No available Spotify devices")}
+                  </div>
+                </div>
+              | Some(SpotifyClient.SpotifyError(status, message)) =>
+                <div className=Styles.spotifyPlayError>
+                  <div className=Styles.spotifyPlayErrorLabel>
+                    {React.string(message)}
+                  </div>
                 </div>
               | _ => React.null
               }}

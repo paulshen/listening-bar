@@ -18,6 +18,9 @@ Replace contents of `.env` with your values.
 
 Listening Bar uses Postgres. Use `database.sql` to create the necessary tables.
 
+You may want to edit `isomorphic/Constants.re` but it should work as-is in dev
+mode.
+
 ## Run
 
 #### Client

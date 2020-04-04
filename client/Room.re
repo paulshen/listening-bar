@@ -474,8 +474,6 @@ let make = (~roomId: string, ~showAbout) => {
   React.useEffect1(
     () =>
       if (isSyncing) {
-        SpotifyClient.turnOffShuffle() |> ignore;
-        SpotifyClient.turnOffRepeat() |> ignore;
         let interval =
           Js.Global.setInterval(
             () => {
@@ -692,7 +690,9 @@ let make = (~roomId: string, ~showAbout) => {
               | Some(SpotifyClient.NoAvailableDevice) =>
                 <div className=Styles.spotifyPlayError>
                   <div className=Styles.spotifyPlayErrorLabel>
-                    {React.string("No available Spotify devices")}
+                    {React.string(
+                       "No available devices. Open Spotify and try again.",
+                     )}
                   </div>
                 </div>
               | Some(SpotifyClient.SpotifyError(status, message)) =>

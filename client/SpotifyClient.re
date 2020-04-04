@@ -157,6 +157,46 @@ let getAvailableDevices = () => {
   };
 };
 
+let turnOffShuffle = () => {
+  switch (Belt.Option.map(UserStore.getUser(), user => user.accessToken)) {
+  | Some(accessToken) =>
+    let%Repromise.Js _ =
+      Fetch.fetchWithInit(
+        "https://api.spotify.com/v1/me/player/shuffle?state=false",
+        Fetch.RequestInit.make(
+          ~method_=Put,
+          ~headers=
+            Fetch.HeadersInit.make({
+              "Authorization": "Bearer " ++ accessToken,
+            }),
+          (),
+        ),
+      );
+    Promise.resolved();
+  | None => Promise.resolved()
+  };
+};
+
+let turnOffRepeat = () => {
+  switch (Belt.Option.map(UserStore.getUser(), user => user.accessToken)) {
+  | Some(accessToken) =>
+    let%Repromise.Js _ =
+      Fetch.fetchWithInit(
+        "https://api.spotify.com/v1/me/player/repeat?state=off",
+        Fetch.RequestInit.make(
+          ~method_=Put,
+          ~headers=
+            Fetch.HeadersInit.make({
+              "Authorization": "Bearer " ++ accessToken,
+            }),
+          (),
+        ),
+      );
+    Promise.resolved();
+  | None => Promise.resolved()
+  };
+};
+
 type playError =
   | SpotifyError(int, string)
   | SelectDevice(array(device))
@@ -211,7 +251,10 @@ let rec playAlbum = (albumId, offset, positionMs, ~deviceId) => {
       );
     let response = Result.getExn(response);
     switch (Fetch.Response.status(response)) {
-    | 204 => Promise.resolved(Ok())
+    | 204 =>
+      turnOffShuffle() |> ignore;
+      turnOffRepeat() |> ignore;
+      Promise.resolved(Ok());
     | 404 =>
       let%Repromise devicesResult = getAvailableDevices();
       switch (devicesResult) {
@@ -252,46 +295,6 @@ let pausePlayer = () => {
     let%Repromise.Js _ =
       Fetch.fetchWithInit(
         "https://api.spotify.com/v1/me/player/pause",
-        Fetch.RequestInit.make(
-          ~method_=Put,
-          ~headers=
-            Fetch.HeadersInit.make({
-              "Authorization": "Bearer " ++ accessToken,
-            }),
-          (),
-        ),
-      );
-    Promise.resolved();
-  | None => Promise.resolved()
-  };
-};
-
-let turnOffShuffle = () => {
-  switch (Belt.Option.map(UserStore.getUser(), user => user.accessToken)) {
-  | Some(accessToken) =>
-    let%Repromise.Js _ =
-      Fetch.fetchWithInit(
-        "https://api.spotify.com/v1/me/player/shuffle?state=false",
-        Fetch.RequestInit.make(
-          ~method_=Put,
-          ~headers=
-            Fetch.HeadersInit.make({
-              "Authorization": "Bearer " ++ accessToken,
-            }),
-          (),
-        ),
-      );
-    Promise.resolved();
-  | None => Promise.resolved()
-  };
-};
-
-let turnOffRepeat = () => {
-  switch (Belt.Option.map(UserStore.getUser(), user => user.accessToken)) {
-  | Some(accessToken) =>
-    let%Repromise.Js _ =
-      Fetch.fetchWithInit(
-        "https://api.spotify.com/v1/me/player/repeat?state=off",
         Fetch.RequestInit.make(
           ~method_=Put,
           ~headers=

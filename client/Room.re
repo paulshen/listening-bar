@@ -715,7 +715,7 @@ let make = (~roomId: string, ~showAbout) => {
                         ReasonReactRouter.replace({j|/$roomId#about|j});
                       }}
                       className=Styles.learnMoreLink>
-                      {React.string("Learn More")}
+                      {React.string("Learn more.")}
                     </a>
                   </div>
                 : showControls

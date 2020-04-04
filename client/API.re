@@ -1,7 +1,7 @@
 open Belt;
 
 let redirectUrl = Constants.clientUrl ++ "/oauth/callback";
-let spotifyClientId = "bb88a3fa1c6e4848b265da3319dabcd3";
+[@bs.val] external spotifyClientId: string = "SPOTIFY_CLIENT_ID";
 let spotifyAuthorizeUrl =
   "https://accounts.spotify.com/authorize?client_id="
   ++ spotifyClientId

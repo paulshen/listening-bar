@@ -5,9 +5,8 @@
     "build": "bsb -make-world",
     "start": "bsb -make-world -w -ws _ ",
     "clean": "bsb -clean-world",
-    "client": "moduleserve ./ --port 8000 --spa",
+    "client": "webpack-dev-server",
     "server": "node ./server/src/Server.bs.js",
-    "copy-assets": "cp -R assets build/assets",
     "webpack": "webpack",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -38,8 +37,9 @@
   },
   "devDependencies": {
     "bs-platform": "^7.2.2",
-    "moduleserve": "^0.9.0",
+    "dotenv": "^8.2.0",
     "webpack": "^4.42.0",
-    "webpack-cli": "^3.3.11"
+    "webpack-cli": "^3.3.11",
+    "webpack-dev-server": "^3.10.3"
   }
 }

@@ -105,7 +105,7 @@ let make = (~roomId=?, ()) => {
       <h1 className=Styles.logo> {React.string("listening.bar")} </h1>
       <p>
         {React.string(
-           "This is a place for shared listening of Spotify albums. Inspired by modern listening bars, where people gather to appreciate music (and whiskey) together.",
+           "This is a place for shared listening of Spotify albums. Inspired by listening bars, where people gather to appreciate music (and whiskey) together.",
          )}
       </p>
       <p>

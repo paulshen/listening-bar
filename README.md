@@ -1,5 +1,9 @@
 # Listening Bar
 
+https://listening.bar
+
+A ReasonML/BuckleScript webapp for listening to Spotify albums together.
+
 ## Installation
 
 ```sh
@@ -9,6 +13,10 @@ cp .env.sample .env
 ```
 
 Replace contents of `.env` with your values.
+
+#### Database
+
+Listening Bar uses Postgres. Use `database.sql` to create the necessary tables.
 
 ## Run
 

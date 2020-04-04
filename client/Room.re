@@ -99,11 +99,11 @@ let syncInterval = 30000;
 
 let syncSpotify =
     (
-      ~roomTrackWithMetadata: (SocketMessage.roomTrack, int, float),
+      ~activeTrackWithMetadata: (SocketMessage.roomTrack, int, float),
       ~onError,
       ~force,
     ) => {
-  let (track, index, startTimestamp) = roomTrackWithMetadata;
+  let (track, index, startTimestamp) = activeTrackWithMetadata;
   let%Repromise skipSyncing =
     if (force) {
       Promise.resolved(false);
@@ -362,11 +362,12 @@ let make = (~roomId: string, ~showAbout) => {
   let user = UserStore.useUser();
   let room = RoomStore.useRoom(Js.String.toLowerCase(roomId));
   let (isSyncing, setIsSyncing) = React.useState(() => false);
+  let isLoggedIn = Belt.Option.isSome(user);
   let isForeverRoom =
     Constants.foreverRoomIds
     |> Js.Array.includes(Js.String.toLowerCase(roomId));
 
-  if (Belt.Option.isNone(user) && isSyncing) {
+  if (!isLoggedIn && isSyncing) {
     setIsSyncing(_ => false);
   };
 
@@ -378,7 +379,7 @@ let make = (~roomId: string, ~showAbout) => {
 
   let (_, forceUpdate) = React.useState(() => 1);
   let roomRecord = Belt.Option.flatMap(room, room => room.record);
-  let roomTrackWithMetadata =
+  let activeTrackWithMetadata =
     Belt.Option.flatMap(
       roomRecord, ((_userId, _albumId, tracks, startTimestamp)) => {
       Belt.Option.map(
@@ -394,13 +395,27 @@ let make = (~roomId: string, ~showAbout) => {
         (tracks[trackIndex], trackIndex, trackStartTimestamp)
       })
     });
-  let roomTrackWithMetadataRef = React.useRef(roomTrackWithMetadata);
+  let activeTrackWithMetadataRef = React.useRef(activeTrackWithMetadata);
   React.useEffect1(
     () => {
-      React.Ref.setCurrent(roomTrackWithMetadataRef, roomTrackWithMetadata);
+      React.Ref.setCurrent(
+        activeTrackWithMetadataRef,
+        activeTrackWithMetadata,
+      );
       None;
     },
-    [|roomTrackWithMetadata|],
+    [|activeTrackWithMetadata|],
+  );
+  React.useEffect1(
+    () => {
+      if (isLoggedIn
+          && !isSyncing
+          && Belt.Option.isSome(activeTrackWithMetadata)) {
+        setIsSyncing(_ => true);
+      };
+      None;
+    },
+    [|isLoggedIn|],
   );
   let onSyncError = _ => {
     setIsSyncing(_ => false);
@@ -411,7 +426,8 @@ let make = (~roomId: string, ~showAbout) => {
       | Some(_) =>
         if (isSyncing) {
           syncSpotify(
-            ~roomTrackWithMetadata=Belt.Option.getExn(roomTrackWithMetadata),
+            ~activeTrackWithMetadata=
+              Belt.Option.getExn(activeTrackWithMetadata),
             ~onError=onSyncError,
             ~force=true,
           )
@@ -428,13 +444,14 @@ let make = (~roomId: string, ~showAbout) => {
   );
   // Handle a forever album repeating from the first track (roomRecord doesn't change)
   let roomTrackOffset =
-    Belt.Option.map(roomTrackWithMetadata, ((_, index, _)) => index);
+    Belt.Option.map(activeTrackWithMetadata, ((_, index, _)) => index);
   React.useEffect1(
     () => {
       switch (isForeverRoom, isSyncing, roomTrackOffset) {
       | (true, true, Some(0)) =>
         syncSpotify(
-          ~roomTrackWithMetadata=Belt.Option.getExn(roomTrackWithMetadata),
+          ~activeTrackWithMetadata=
+            Belt.Option.getExn(activeTrackWithMetadata),
           ~onError=onSyncError,
           ~force=true,
         )
@@ -453,10 +470,10 @@ let make = (~roomId: string, ~showAbout) => {
         let interval =
           Js.Global.setInterval(
             () => {
-              switch (React.Ref.current(roomTrackWithMetadataRef)) {
-              | Some(roomTrackWithMetadata) =>
+              switch (React.Ref.current(activeTrackWithMetadataRef)) {
+              | Some(activeTrackWithMetadata) =>
                 syncSpotify(
-                  ~roomTrackWithMetadata,
+                  ~activeTrackWithMetadata,
                   ~onError=onSyncError,
                   ~force=false,
                 )
@@ -475,13 +492,15 @@ let make = (~roomId: string, ~showAbout) => {
 
   // TODO: move UI update into <CurrentRecord>
   let roomTrackId =
-    Belt.Option.map(roomTrackWithMetadata, ((track, _, _)) => track.trackId);
+    Belt.Option.map(activeTrackWithMetadata, ((track, _, _)) =>
+      track.trackId
+    );
   React.useEffect1(
     () =>
       switch (roomTrackId) {
       | Some(_) =>
         let (roomTrack, index, startTimestamp) =
-          Belt.Option.getExn(roomTrackWithMetadata);
+          Belt.Option.getExn(activeTrackWithMetadata);
         let songEnd = startTimestamp +. roomTrack.durationMs;
         let timeout =
           Js.Global.setTimeoutFloat(
@@ -501,16 +520,16 @@ let make = (~roomId: string, ~showAbout) => {
     };
   let (showControls, setShowControls) =
     React.useState(() =>
-      amOnlyOne || Belt.Option.isNone(roomTrackWithMetadata)
+      amOnlyOne || Belt.Option.isNone(activeTrackWithMetadata)
     );
   React.useEffect1(
     () => {
-      if (Belt.Option.isNone(roomTrackWithMetadata) && !showControls) {
+      if (Belt.Option.isNone(activeTrackWithMetadata) && !showControls) {
         setShowControls(_ => true);
       };
       None;
     },
-    [|Belt.Option.isNone(roomTrackWithMetadata)|],
+    [|Belt.Option.isNone(activeTrackWithMetadata)|],
   );
   if (amOnlyOne && !showControls && !isForeverRoom) {
     setShowControls(_ => true);
@@ -566,13 +585,13 @@ let make = (~roomId: string, ~showAbout) => {
            );
          <RecordPlayer
            userId={
-             switch (isForeverRoom, roomRecord, roomTrackWithMetadata) {
+             switch (isForeverRoom, roomRecord, activeTrackWithMetadata) {
              | (false, Some((userId, _, _, _)), Some(_)) => Some(userId)
              | _ => None
              }
            }
            startTimestamp={
-             switch (roomRecord, roomTrackWithMetadata) {
+             switch (roomRecord, activeTrackWithMetadata) {
              | (Some((_, _, _, startTimestamp)), Some(_)) =>
                let totalDuration = Belt.Option.getExn(totalDuration);
                Some(
@@ -618,18 +637,18 @@ let make = (~roomId: string, ~showAbout) => {
                       onClick={_ => setIsSyncing(_ => true)}
                       className={Cn.ifTrue(
                         Styles.listenAlongButtonEmpty,
-                        Belt.Option.isNone(roomTrackWithMetadata),
+                        Belt.Option.isNone(activeTrackWithMetadata),
                       )}>
                       {React.string("Listen Along")}
                     </Button>}
-               {switch (roomTrackWithMetadata) {
-                | Some(roomTrackWithMetadata) =>
+               {switch (activeTrackWithMetadata) {
+                | Some(activeTrackWithMetadata) =>
                   <a
                     href="#"
                     onClick={e => {
                       ReactEvent.Mouse.preventDefault(e);
                       syncSpotify(
-                        ~roomTrackWithMetadata,
+                        ~activeTrackWithMetadata,
                         ~onError=onSyncError,
                         ~force=false,
                       )
@@ -694,7 +713,7 @@ let make = (~roomId: string, ~showAbout) => {
                     ? <ControlButtons
                         roomId
                         hasRecordPlaying={Belt.Option.isSome(
-                          roomTrackWithMetadata,
+                          activeTrackWithMetadata,
                         )}
                       />
                     : React.null}
@@ -806,7 +825,7 @@ let make = (~roomId: string, ~showAbout) => {
       <div className=Styles.paneSpacer />
       <div>
         <CurrentRecord
-          roomTrackWithMetadata
+          activeTrackWithMetadata
           roomRecord
           onTrackFinish={() => {
             // Hack rare callback here

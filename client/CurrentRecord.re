@@ -92,13 +92,13 @@ module TrackRow = {
 [@react.component]
 let make =
     (
-      ~roomTrackWithMetadata: option((SocketMessage.roomTrack, int, float)),
+      ~activeTrackWithMetadata: option((SocketMessage.roomTrack, int, float)),
       ~roomRecord:
          option((string, string, array(SocketMessage.roomTrack), float)),
       ~isLoggedIn: bool,
       ~onTrackFinish,
     ) => {
-  switch (roomTrackWithMetadata) {
+  switch (activeTrackWithMetadata) {
   | Some((roomTrack, index, trackStartTimestamp)) =>
     let (userId, _albumId, playlistTracks, _) =
       Belt.Option.getExn(roomRecord);

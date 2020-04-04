@@ -8,4 +8,4 @@ let serverUrl =
 let clientUrl =
   isProduction ? "https://listening.bar" : "http://localhost:8000";
 
-let foreverRoomIds = [|"kid-a", "hamilton", "blue-train"|];
+let foreverRoomIds = [|"kid-a", "kind-of-blue", "blue-train"|];

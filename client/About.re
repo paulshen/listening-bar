@@ -153,8 +153,8 @@ let make = (~roomId=?, ()) => {
           </Link>
         </li>
         <li>
-          <Link path="/hamilton" className=Styles.listLink>
-            {React.string("listening.bar/hamilton")}
+          <Link path="/kind-of-blue" className=Styles.listLink>
+            {React.string("listening.bar/kind-of-blue")}
           </Link>
         </li>
       </ul>

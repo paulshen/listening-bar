@@ -83,7 +83,7 @@ module Styles = {
   let aboutLink = style([]);
   let about =
     style([
-      backgroundColor(rgba(62, 49, 43, 0.98)),
+      backgroundColor(hex("2f2723f8")),
       position(absolute),
       top(zero),
       left(zero),

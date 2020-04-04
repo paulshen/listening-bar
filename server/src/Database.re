@@ -37,6 +37,7 @@ type dbUserRow = {
   refreshToken: string,
   [@bs.as "token_expire_time"]
   tokenExpireTime: Js.Date.t,
+  anonymous: Js.Nullable.t(bool),
 };
 
 let getUser = (client, userId: string): Promise.t(option(User.t)) => {
@@ -55,6 +56,9 @@ let getUser = (client, userId: string): Promise.t(option(User.t)) => {
           accessToken: row.accessToken,
           refreshToken: row.refreshToken,
           tokenExpireTime: row.tokenExpireTime |> Js.Date.getTime,
+          anonymous:
+            Js.Nullable.toOption(row.anonymous)
+            ->Option.getWithDefault(false),
         }: User.t
       )
     ),
@@ -68,15 +72,16 @@ let updateUser = (client, user: User.t) => {
     |> query'(
          BsPostgres.Query.make(
            ~text=
-             {js|INSERT INTO listeningbar.users(id, access_token, refresh_token, token_expire_time)
-          VALUES($1, $2, $3, $4)
+             {js|INSERT INTO listeningbar.users(id, access_token, refresh_token, token_expire_time, anonymous)
+          VALUES($1, $2, $3, $4, $5)
           ON CONFLICT (id) DO UPDATE
-          SET access_token=EXCLUDED.access_token, refresh_token=EXCLUDED.refresh_token, token_expire_time=EXCLUDED.token_expire_time|js},
+          SET access_token=EXCLUDED.access_token, refresh_token=EXCLUDED.refresh_token, token_expire_time=EXCLUDED.token_expire_time, anonymous=EXCLUDED.anonymous|js},
            ~values=(
              user.id,
              user.accessToken,
              user.refreshToken,
              Js.Date.fromFloat(user.tokenExpireTime),
+             user.anonymous,
            ),
            (),
          ),

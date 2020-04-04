@@ -59,7 +59,12 @@ let login = code => {
     ->Js.Dict.unsafeGet("userId")
     ->Js.Json.decodeString
     ->Option.getExn;
-  UserStore.login(sessionId, accessToken, userId);
+  let anonymous =
+    jsonDict
+    ->Js.Dict.unsafeGet("anonymous")
+    ->Js.Json.decodeBoolean
+    ->Option.getExn;
+  UserStore.login(sessionId, accessToken, userId, anonymous);
   Promise.resolved(accessToken);
 };
 
@@ -108,7 +113,8 @@ let fetchUser = () => {
         open Json.Decode;
         let userId = json |> field("userId", string);
         let accessToken = json |> field("accessToken", string);
-        UserStore.updateUser({id: userId, accessToken});
+        let anonymous = json |> field("anonymous", bool);
+        UserStore.updateUser({id: userId, accessToken, anonymous});
         Promise.resolved();
       } else {
         UserStore.fetchFail();

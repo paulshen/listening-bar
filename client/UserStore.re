@@ -1,6 +1,7 @@
 type user = {
   id: string,
   accessToken: string,
+  anonymous: bool,
 };
 
 type state = {
@@ -9,7 +10,7 @@ type state = {
   hasFetched: bool,
 };
 type action =
-  | Login(string, string, string)
+  | Login(string, string, string, bool)
   | UpdateUser(user)
   | Logout
   | FetchFail;
@@ -20,9 +21,9 @@ let api =
   Restorative.createStore(
     {sessionId, user: None, hasFetched: false}, (state, action) => {
     switch (action) {
-    | Login(sessionId, accessToken, userId) => {
+    | Login(sessionId, accessToken, userId, anonymous) => {
         sessionId: Some(sessionId),
-        user: Some({id: userId, accessToken}),
+        user: Some({id: userId, accessToken, anonymous}),
         hasFetched: true,
       }
     | UpdateUser(user) => {...state, user: Some(user), hasFetched: true}
@@ -37,8 +38,8 @@ let useHasFetched = () =>
 let useUser = () => api.useStoreWithSelector(state => state.user, ());
 let getUser = () => api.getState().user;
 
-let login = (sessionId, accessToken, userId) =>
-  api.dispatch(Login(sessionId, accessToken, userId));
+let login = (sessionId, accessToken, userId, anonymous) =>
+  api.dispatch(Login(sessionId, accessToken, userId, anonymous));
 let logout = () => api.dispatch(Logout);
 let updateUser = (user: user) => {
   api.dispatch(UpdateUser(user));

@@ -50,13 +50,15 @@ promiseMiddleware((next, req, res) => {
     ->Js.Dict.unsafeGet("code")
     ->Js.Json.decodeString
     ->Option.getExn;
-  let%Repromise (sessionId, accessToken, userId) = Spotify.getToken(code);
+  let%Repromise (sessionId, accessToken, userId, anonymous) =
+    Spotify.getToken(code);
   let responseJson =
     Js.Json.object_(
       Js.Dict.fromArray([|
         ("sessionId", Js.Json.string(sessionId)),
         ("accessToken", Js.Json.string(accessToken)),
         ("userId", Js.Json.string(userId)),
+        ("anonymous", Js.Json.boolean(anonymous)),
       |]),
     );
   res |> Response.sendJson(responseJson) |> Promise.resolved;
@@ -149,6 +151,15 @@ Router.getWithMany(apiRouter, ~path="/user") @@
             | None => Js.Json.null
             },
           ),
+          (
+            "anonymous",
+            Js.Json.boolean(
+              switch (user) {
+              | Some(user) => user.anonymous
+              | None => false
+              },
+            ),
+          ),
         |]),
       );
     res |> Response.sendJson(responseJson) |> Promise.resolved;
@@ -228,7 +239,7 @@ SocketServer.onConnect(
     Socket.on(
       socket,
       message => {
-        Js.log(message);
+        Js.log2(Js.Date.now(), message);
         switch (message) {
         | JoinRoom(roomId, sessionId) =>
           {
@@ -254,14 +265,27 @@ SocketServer.onConnect(
                 },
                 Database.getRoom(client, roomId),
               );
+            let%Repromise user =
+              switch (session) {
+              | Some(session) => Database.getUser(client, session.userId)
+              | None => Promise.resolved(None)
+              };
             Database.releaseClient(client) |> ignore;
+            let connectionUserId =
+              switch (
+                switch (user) {
+                | Some(user) => user.anonymous
+                | None => false
+                },
+                session,
+              ) {
+              | (_, None) => ""
+              | (true, _) => "Anonymous"
+              | (false, Some(session)) => session.userId
+              };
             let connection: SocketMessage.connection = {
               id: socketId,
-              userId:
-                switch (session) {
-                | Some(session) => session.userId
-                | None => ""
-                },
+              userId: connectionUserId,
             };
             socket
             ->Socket.to_(roomId)
@@ -405,6 +429,9 @@ SocketServer.onConnect(
                 let serializedRoomTracks =
                   tracks |> Js.Array.map(SocketMessage.serializeSpotifyTrack);
 
+                let publishedUserId =
+                  Option.getExn(user).anonymous
+                    ? "Anonymous" : Option.getExn(userId);
                 // TODO: check roomId == storedRoomId
                 {
                   switch (room) {
@@ -413,7 +440,7 @@ SocketServer.onConnect(
                       ...room,
                       record:
                         Some((
-                          Option.getExn(userId),
+                          publishedUserId,
                           albumId,
                           serializedRoomTracks,
                           startTimestamp,
@@ -433,7 +460,7 @@ SocketServer.onConnect(
                 ->Socket.emit(
                     StartRecord(
                       roomId,
-                      Option.getExn(userId),
+                      publishedUserId,
                       albumId,
                       serializedRoomTracks,
                       startTimestamp,

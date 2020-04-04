@@ -3,6 +3,7 @@ type t = {
   accessToken: string,
   refreshToken: string,
   tokenExpireTime: float,
+  anonymous: bool,
 };
 
 type session = {

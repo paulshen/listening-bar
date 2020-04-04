@@ -88,16 +88,22 @@ let getToken = code => {
   let%Repromise userId = getUserId(accessToken);
   let sessionId = uuidV4();
   let%Repromise client = Database.getClient();
+  let%Repromise user = Database.getUser(client, userId);
+  let anonymous =
+    switch (user) {
+    | Some(user) => user.anonymous
+    | None => false
+    };
   let%Repromise _ =
     Promise.all2(
       Database.updateUser(
         client,
-        {id: userId, accessToken, refreshToken, tokenExpireTime},
+        {id: userId, accessToken, refreshToken, tokenExpireTime, anonymous},
       ),
       Database.addSession(client, {id: sessionId, userId}),
     );
   Database.releaseClient(client) |> ignore;
-  Promise.resolved((sessionId, accessToken, userId));
+  Promise.resolved((sessionId, accessToken, userId, anonymous));
 };
 
 let refreshToken = refreshToken => {

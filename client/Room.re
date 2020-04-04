@@ -73,12 +73,15 @@ module Styles = {
   let learnMoreLink = style([color(hex("FDFEC3c0"))]);
   let connectedLabel =
     style([
-      marginBottom(px(4)),
       letterSpacing(pxFloat(1.)),
       textTransform(uppercase),
+      marginBottom(px(4)),
     ]);
   let connectedUsername =
-    style([display(inlineBlock), marginRight(px(8))]);
+    style([display(inlineBlock), marginRight(px(10))]);
+  let anonymousToken =
+    style([display(inlineBlock), marginLeft(px(4)), opacity(0.5)]);
+  let anonymousTokenLink = style([]);
   let aboutLink = style([]);
   let about =
     style([
@@ -514,6 +517,13 @@ let make = (~roomId: string, ~showAbout) => {
   };
 
   let playError = SpotifyStore.useError();
+  let shouldShowNameLink =
+    ref(
+      switch (user) {
+      | Some(user) => user.anonymous
+      | None => false
+      },
+    );
 
   <>
     <HeaderBar
@@ -712,6 +722,7 @@ let make = (~roomId: string, ~showAbout) => {
              |> Js.Array.filter((connection: SocketMessage.connection) => {
                   switch (connection.userId) {
                   | "" => true
+                  | "anonymous" => true
                   | userId =>
                     if (seenUserIds |> Js.Array.includes(userId)) {
                       false;
@@ -738,6 +749,52 @@ let make = (~roomId: string, ~showAbout) => {
                           | userId => userId
                           },
                         )}
+                       {if (connection.userId == "anonymous"
+                            && shouldShowNameLink^) {
+                          shouldShowNameLink := false;
+                          <span className=Styles.anonymousToken>
+                            {React.string("(")}
+                            <a
+                              href="#"
+                              onClick={e => {
+                                ReactEvent.Mouse.preventDefault(e);
+                                ClientSocket.setAnonymous(
+                                  Belt.Option.getExn(
+                                    UserStore.getSessionId(),
+                                  ),
+                                  roomId,
+                                  false,
+                                );
+                              }}
+                              className=Styles.anonymousTokenLink>
+                              {React.string("show my name")}
+                            </a>
+                            {React.string(")")}
+                          </span>;
+                        } else if (Belt.Option.map(user, user => user.id)
+                                   == Some(connection.userId)) {
+                          <span className=Styles.anonymousToken>
+                            {React.string("(")}
+                            <a
+                              href="#"
+                              onClick={e => {
+                                ReactEvent.Mouse.preventDefault(e);
+                                ClientSocket.setAnonymous(
+                                  Belt.Option.getExn(
+                                    UserStore.getSessionId(),
+                                  ),
+                                  roomId,
+                                  true,
+                                );
+                              }}
+                              className=Styles.anonymousTokenLink>
+                              {React.string("hide name")}
+                            </a>
+                            {React.string(")")}
+                          </span>;
+                        } else {
+                          React.null;
+                        }}
                      </div>
                    )
                 |> React.array}

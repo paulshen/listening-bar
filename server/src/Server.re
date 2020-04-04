@@ -280,7 +280,7 @@ SocketServer.onConnect(
                 session,
               ) {
               | (_, None) => ""
-              | (true, _) => "Anonymous"
+              | (true, _) => "anonymous"
               | (false, Some(session)) => session.userId
               };
             let connection: SocketMessage.connection = {
@@ -431,7 +431,7 @@ SocketServer.onConnect(
 
                 let publishedUserId =
                   Option.getExn(user).anonymous
-                    ? "Anonymous" : Option.getExn(userId);
+                    ? "anonymous" : Option.getExn(userId);
                 // TODO: check roomId == storedRoomId
                 {
                   switch (room) {
@@ -492,6 +492,68 @@ SocketServer.onConnect(
             }
             |> ignore;
             io->inRoom(roomId)->Socket.emit(RemoveRecord(roomId));
+          // TODO: check roomId == storedRoomId
+          | None => ()
+          };
+        | SetAnonymous(sessionId, roomId, anonymous) =>
+          let roomId = Js.String.toLowerCase(Utils.sanitizeRoomId(roomId));
+          switch (roomIdRef^) {
+          | Some(roomId) =>
+            {
+              let%Repromise client = Database.getClient();
+              let%Repromise session = Database.getSession(client, sessionId);
+              let userId = Option.map(session, session => session.userId);
+              let%Repromise user =
+                switch (userId) {
+                | Some(userId) => Database.getUser(client, userId)
+                | None => Promise.resolved(None)
+                };
+              let%Repromise _ =
+                switch (user) {
+                | Some(user) =>
+                  Database.updateUser(client, {...user, anonymous})
+                | _ => Promise.resolved()
+                };
+              Database.releaseClient(client) |> ignore;
+              Option.flatMap(
+                Js.Dict.get(roomConnections, roomId), connections => {
+                (
+                  switch (anonymous, user) {
+                  | (true, _) =>
+                    Some(
+                      {id: socketId, userId: "anonymous"}: SocketMessage.connection,
+                    )
+                  | (false, Some(user)) =>
+                    Some({id: socketId, userId: user.id})
+                  | (false, None) => None
+                  }
+                )
+                ->Option.map(updatedConnection =>
+                    (connections, updatedConnection)
+                  )
+              })
+              ->Option.map(((connections, updatedConnection)) => {
+                  roomConnections->Js.Dict.set(
+                    roomId,
+                    connections
+                    |> Js.Array.map((connection: SocketMessage.connection) =>
+                         connection.id != socketId
+                           ? connection : updatedConnection
+                       ),
+                  );
+                  io
+                  ->inRoom(roomId)
+                  ->Socket.emit(
+                      UpdateConnection(
+                        roomId,
+                        SocketMessage.serializeConnection(updatedConnection),
+                      ),
+                    );
+                })
+              |> ignore;
+              Promise.resolved();
+            }
+            |> ignore
           // TODO: check roomId == storedRoomId
           | None => ()
           };

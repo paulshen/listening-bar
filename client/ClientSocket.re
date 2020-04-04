@@ -2,6 +2,8 @@ module Socket = BsSocket.Client.Make(SocketMessage);
 
 let socketRef = ref(None);
 
+[@bs.get] external getSocketId: Socket.t => string = "id";
+
 let getSocket = () => {
   switch (socketRef^) {
   | Some(socket) => socket
@@ -12,13 +14,21 @@ let getSocket = () => {
     Socket.on(
       socket,
       message => {
-        Js.log(message);
+        if (!Constants.isProduction) {
+          Js.log(message);
+        };
         switch (message) {
         | NewConnection(roomId, connection) =>
           RoomStore.addConnection(
             roomId,
             SocketMessage.deserializeConnection(connection),
           )
+        | UpdateConnection(roomId, connection) =>
+          let connection = SocketMessage.deserializeConnection(connection);
+          if (connection.id == socket->getSocketId) {
+            UserStore.setAnonymous(connection.userId == "anonymous");
+          };
+          RoomStore.updateConnection(roomId, connection);
         | LostConnection(roomId, connectionId) =>
           RoomStore.removeConnection(roomId, connectionId)
         | LogoutConnection(roomId, connectionId) =>
@@ -101,4 +111,8 @@ let logout = () => {
   | Some(roomId) => Socket.emit(getSocket(), Logout(roomId))
   | _ => ()
   };
+};
+
+let setAnonymous = (sessionId, roomId, anonymous) => {
+  Socket.emit(getSocket(), SetAnonymous(sessionId, roomId, anonymous));
 };

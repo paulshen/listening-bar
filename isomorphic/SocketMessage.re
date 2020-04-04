@@ -102,6 +102,7 @@ type clientToServer =
   | JoinRoom(string, string)
   | PublishTrackState(string, string, trackState)
   | RemoveRecord(string)
+  | SetAnonymous(string, string, bool)
   | Logout(string);
 type serverToClient =
   | Connected(
@@ -113,6 +114,7 @@ type serverToClient =
       float,
     )
   | NewConnection(string, (string, string))
+  | UpdateConnection(string, (string, string))
   | LostConnection(string, string)
   | LogoutConnection(string, string)
   | StartRecord(string, string, string, array(serializedRoomTrack), float)

@@ -12,6 +12,7 @@ type state = {
 type action =
   | Login(string, string, string, bool)
   | UpdateUser(user)
+  | SetAnonymous(bool)
   | Logout
   | FetchFail;
 
@@ -27,6 +28,10 @@ let api =
         hasFetched: true,
       }
     | UpdateUser(user) => {...state, user: Some(user), hasFetched: true}
+    | SetAnonymous(anonymous) => {
+        ...state,
+        user: Belt.Option.map(state.user, user => {...user, anonymous}),
+      }
     | Logout => {...state, sessionId: None, user: None}
     | FetchFail => {...state, user: None, hasFetched: true}
     }
@@ -43,5 +48,8 @@ let login = (sessionId, accessToken, userId, anonymous) =>
 let logout = () => api.dispatch(Logout);
 let updateUser = (user: user) => {
   api.dispatch(UpdateUser(user));
+};
+let setAnonymous = (anonymous: bool) => {
+  api.dispatch(SetAnonymous(anonymous));
 };
 let fetchFail = () => api.dispatch(FetchFail);

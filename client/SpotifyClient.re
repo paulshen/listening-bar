@@ -234,7 +234,13 @@ let rec playAlbum = (albumId, offset, positionMs, ~deviceId) => {
       open Json.Decode;
       let message =
         json |> field("error", json => json |> field("message", string));
-      Promise.resolved(Error(SpotifyError(statusCode, message)));
+      if (statusCode == 401 && message == "The access token expired") {
+        // Try to refresh token
+        let%Repromise _ = API.fetchUser();
+        playAlbum(albumId, offset, positionMs, ~deviceId=None);
+      } else {
+        Promise.resolved(Error(SpotifyError(statusCode, message)));
+      };
     };
   | None => Promise.resolved(Error(NoAccessToken))
   };

@@ -376,11 +376,7 @@ SocketServer.onConnect(
               let (trackId, contextType, contextId, startTimestamp) = trackState;
               let albumId = contextId;
               let%Repromise client = Database.getClient();
-              let%Repromise (session, room) =
-                Promise.all2(
-                  Database.getSession(client, sessionId),
-                  Database.getRoom(client, roomId),
-                );
+              let%Repromise session = Database.getSession(client, sessionId);
               let userId = Option.map(session, session => session.userId);
               let%Repromise user =
                 switch (userId) {
@@ -434,24 +430,19 @@ SocketServer.onConnect(
                     ? "anonymous" : Option.getExn(userId);
                 // TODO: check roomId == storedRoomId
                 {
-                  switch (room) {
-                  | Some(room) =>
-                    let updatedRoom = {
-                      ...room,
-                      record:
-                        Some((
-                          publishedUserId,
-                          albumId,
-                          serializedRoomTracks,
-                          startTimestamp,
-                        )),
-                    };
-                    let%Repromise client = Database.getClient();
-                    let%Repromise _ =
-                      Database.updateRoom(client, updatedRoom);
-                    Database.releaseClient(client);
-                  | None => Promise.resolved()
+                  let updatedRoom: Room.t = {
+                    id: roomId,
+                    record:
+                      Some((
+                        publishedUserId,
+                        albumId,
+                        serializedRoomTracks,
+                        startTimestamp,
+                      )),
                   };
+                  let%Repromise client = Database.getClient();
+                  let%Repromise _ = Database.updateRoom(client, updatedRoom);
+                  Database.releaseClient(client);
                 }
                 |> ignore;
 
